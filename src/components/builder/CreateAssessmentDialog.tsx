@@ -38,6 +38,12 @@ interface CreateAssessmentDialogProps {
     weighting: number | null;
   }) => void;
   isPending?: boolean;
+  /**
+   * When provided (from getAllowedAssessmentTypes), only assessment type
+   * values present in this list will be shown. Categories with no
+   * allowed types are hidden entirely.
+   */
+  allowedAssessmentTypes?: string[];
   /** Pre-fill for editing */
   initialData?: {
     id: string;
@@ -130,6 +136,7 @@ export function CreateAssessmentDialog({
   modules,
   onSubmit,
   isPending,
+  allowedAssessmentTypes,
   initialData,
 }: CreateAssessmentDialogProps) {
   const isEditing = !!initialData;
@@ -146,7 +153,18 @@ export function CreateAssessmentDialog({
   const [hasTimeLimit, setHasTimeLimit] = useState(false);
   const [timeLimit, setTimeLimit] = useState("");
 
-  const selectedCategory = CATEGORIES.find((c) => c.value === category);
+  // Filter categories and types based on programme type config
+  const visibleCategories = useMemo(() => {
+    if (!allowedAssessmentTypes || allowedAssessmentTypes.length === 0) return CATEGORIES;
+    return CATEGORIES.map(cat => ({
+      ...cat,
+      types: cat.types.filter(t => allowedAssessmentTypes.includes(t.value)),
+    })).filter(cat => cat.types.length > 0);
+  }, [allowedAssessmentTypes]);
+
+  const isTypeRestricted = allowedAssessmentTypes && allowedAssessmentTypes.length > 0;
+
+  const selectedCategory = visibleCategories.find((c) => c.value === category);
   const availableTypes = selectedCategory?.types || [];
 
   const handleSubmit = () => {
@@ -200,6 +218,17 @@ export function CreateAssessmentDialog({
 
         <ScrollArea className="flex-1 px-6">
           <div className="space-y-5 pb-6">
+            {/* Programme type config notice */}
+            {isTypeRestricted && !isEditing && (
+              <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-primary/5 border border-primary/20">
+                <span className="text-[10px] text-primary mt-0.5">●</span>
+                <p className="text-[11px] text-muted-foreground">
+                  Assessment types are filtered by this programme's type configuration.
+                  {" "}{allowedAssessmentTypes!.length} type{allowedAssessmentTypes!.length !== 1 ? "s" : ""} available.
+                </p>
+              </div>
+            )}
+
             {/* Step 1: Category Selection */}
             {!isEditing && (
               <div className="space-y-2">
@@ -207,7 +236,7 @@ export function CreateAssessmentDialog({
                   1. Assessment Category
                 </Label>
                 <div className="grid grid-cols-2 gap-2">
-                  {CATEGORIES.map((cat) => {
+                  {visibleCategories.map((cat) => {
                     const Icon = cat.icon;
                     const isSelected = category === cat.value;
                     return (

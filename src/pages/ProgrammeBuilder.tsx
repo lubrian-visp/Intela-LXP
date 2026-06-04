@@ -13,7 +13,7 @@ import {
 import { useTransitionProgramme, useCloneToDraft, canTransition, LIFECYCLE_TRANSITIONS, LIFECYCLE_LABELS, LIFECYCLE_COLORS, canEdit, canEditContent, useProgrammePermission, useCanApproveProgramme } from "@/hooks/useProgrammeLifecycle";
 import type { LifecycleStatus } from "@/hooks/useProgrammeLifecycle";
 import { resolveConfig } from "@/types/programmeTypeConfig";
-import { getAllowedBlockTypes } from "@/lib/programmeTypeTemplates";
+import { getAllowedBlockTypes, getAllowedAssessmentTypes } from "@/lib/programmeTypeTemplates";
 import { useLessonsByProgramme, useCreateLesson } from "@/hooks/useLessons";
 import { useAssessmentLinks, useCreateAssessmentLink, useDeleteAssessmentLink, getLinksForNode } from "@/hooks/useAssessmentLinks";
 import { Button } from "@/components/ui/button";
@@ -97,6 +97,7 @@ export default function ProgrammeBuilder() {
   const typeConfig = programmeType?.config as Record<string, any> | undefined;
   const resolvedCfg = typeConfig ? resolveConfig(typeConfig) : null;
   const allowedBlocks = typeConfig ? getAllowedBlockTypes(typeConfig) : undefined;
+  const allowedAssessmentTypes = typeConfig ? getAllowedAssessmentTypes(typeConfig) : undefined;
 
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
   const [parentNode, setParentNode] = useState<TreeNode | null>(null);
@@ -1020,6 +1021,7 @@ export default function ProgrammeBuilder() {
           onOpenChange={setCreateAssessmentOpen}
           programmeId={programmeId}
           modules={modules.map((m: any) => ({ id: m.id, title: m.title }))}
+          allowedAssessmentTypes={allowedAssessmentTypes}
           onSubmit={(data) => {
             createAssessmentMut.mutate(
               { ...data, programme_id: programmeId, module_id: data.module_id === "none" ? null : data.module_id },
