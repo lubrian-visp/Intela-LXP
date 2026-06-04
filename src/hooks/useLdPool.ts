@@ -55,31 +55,38 @@ export function useLdPoolMembers(roleFilter?: string) {
     queryFn: async () => {
       let q = db
         .from("ld_pool_members")
-        .select(`
-          *,
-          profile:profiles!ld_pool_members_user_id_fkey(full_name, avatar_url, job_title)
-        `)
+        .select("*")
         .order("display_role")
         .order("added_at", { ascending: false });
       if (roleFilter && roleFilter !== "all") q = q.eq("role_key", roleFilter);
       const { data, error } = await q;
       if (error) throw error;
+      if (!data?.length) return [] as LdPoolMember[];
 
-      // Enrich with active cohort count
-      const userIds = (data ?? []).map((m: any) => m.user_id);
-      let cohortCounts: Record<string, number> = {};
-      if (userIds.length > 0) {
-        const { data: assignments } = await db
-          .from("cohort_staff_assignments")
-          .select("user_id, cohort_id")
-          .in("user_id", userIds);
-        (assignments ?? []).forEach((a: any) => {
-          cohortCounts[a.user_id] = (cohortCounts[a.user_id] ?? 0) + 1;
-        });
-      }
+      const userIds = (data as any[]).map((m: any) => m.user_id);
 
-      return (data ?? []).map((m: any) => ({
+      // Fetch profiles separately (no direct FK from ld_pool_members → profiles)
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, avatar_url, job_title")
+        .in("user_id", userIds);
+      const profileMap = Object.fromEntries(
+        (profiles ?? []).map((p: any) => [p.user_id, p])
+      );
+
+      // Cohort workload counts
+      const { data: assignments } = await db
+        .from("cohort_staff_assignments")
+        .select("user_id")
+        .in("user_id", userIds);
+      const cohortCounts: Record<string, number> = {};
+      (assignments ?? []).forEach((a: any) => {
+        cohortCounts[a.user_id] = (cohortCounts[a.user_id] ?? 0) + 1;
+      });
+
+      return (data as any[]).map((m: any) => ({
         ...m,
+        profile: profileMap[m.user_id] ?? { full_name: null, avatar_url: null, job_title: null },
         active_cohort_count: cohortCounts[m.user_id] ?? 0,
       })) as LdPoolMember[];
     },
@@ -94,26 +101,35 @@ export function useLdPoolMembersByRole(role: string, enabled = true) {
     queryFn: async () => {
       const { data, error } = await db
         .from("ld_pool_members")
-        .select(`*, profile:profiles!ld_pool_members_user_id_fkey(full_name, avatar_url)`)
+        .select("*")
         .eq("role_key", role)
         .eq("pool_status", "active")
         .order("display_role");
       if (error) throw error;
+      if (!data?.length) return [] as LdPoolMember[];
 
-      const userIds = (data ?? []).map((m: any) => m.user_id);
-      let cohortCounts: Record<string, number> = {};
-      if (userIds.length > 0) {
-        const { data: assignments } = await db
-          .from("cohort_staff_assignments")
-          .select("user_id")
-          .in("user_id", userIds);
-        (assignments ?? []).forEach((a: any) => {
-          cohortCounts[a.user_id] = (cohortCounts[a.user_id] ?? 0) + 1;
-        });
-      }
+      const userIds = (data as any[]).map((m: any) => m.user_id);
 
-      return (data ?? []).map((m: any) => ({
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, avatar_url, job_title")
+        .in("user_id", userIds);
+      const profileMap = Object.fromEntries(
+        (profiles ?? []).map((p: any) => [p.user_id, p])
+      );
+
+      const { data: assignments } = await db
+        .from("cohort_staff_assignments")
+        .select("user_id")
+        .in("user_id", userIds);
+      const cohortCounts: Record<string, number> = {};
+      (assignments ?? []).forEach((a: any) => {
+        cohortCounts[a.user_id] = (cohortCounts[a.user_id] ?? 0) + 1;
+      });
+
+      return (data as any[]).map((m: any) => ({
         ...m,
+        profile: profileMap[m.user_id] ?? { full_name: null, avatar_url: null, job_title: null },
         active_cohort_count: cohortCounts[m.user_id] ?? 0,
       })) as LdPoolMember[];
     },
