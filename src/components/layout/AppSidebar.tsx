@@ -147,36 +147,256 @@ const accountSection: NavSection = {
   ],
 };
 
-// Role-specific sidebar configs: each role gets a curated set of sections
+// ── Dedicated Staff Pool section — shown explicitly in every relevant role nav ──
+const staffManagementSection: NavSection = {
+  title: "Staff Management",
+  domainColor: "hsl(38, 92%, 50%)",
+  items: [
+    {
+      label: "Admin Staff Pool",
+      icon: Users,
+      path: "/admin/staff-pool",
+      roles: ["super_admin", "systems_admin", "operations", "programme_manager", "talent_manager"],
+    },
+    {
+      label: "Staff Onboarding",
+      icon: Briefcase,
+      path: "/staff/onboarding",
+      roles: ["super_admin", "systems_admin", "operations"],
+    },
+  ],
+};
+
+// ── Per-role curated navigation ───────────────────────────────────────────────
+// Every role that can access Admin Staff Pool gets an explicit section map
+// so the item is always visible — no relying on fallback filtering.
+
+const superAdminSections: NavSection[] = [
+  {
+    title: "Technical / Admin",
+    domainColor: "hsl(0, 84%, 60%)",
+    items: [
+      { label: "Dashboard",          icon: LayoutDashboard, path: "/" },
+      { label: "Systems Admin",      icon: Cog,             path: "/systems-admin" },
+      { label: "User Directory",     icon: Users,           path: "/admin/users" },
+      { label: "Roles & Permissions",icon: Shield,          path: "/admin/roles" },
+      { label: "Audit Logs",         icon: History,         path: "/admin/audit-logs" },
+      { label: "Platform Settings",  icon: Settings,        path: "/admin/settings" },
+      { label: "Programme Types",    icon: Cog,             path: "/admin/programme-types" },
+      { label: "Multi-Tenancy",      icon: Building2,       path: "/admin/tenants" },
+      { label: "Integrations",       icon: Plug,            path: "/admin/integrations" },
+      { label: "PoPIA Compliance",   icon: Shield,          path: "/admin/popia" },
+    ],
+  },
+  {
+    title: "Operations",
+    domainColor: "hsl(38, 92%, 50%)",
+    items: [
+      { label: "Operations Control", icon: Activity,    path: "/operations" },
+      { label: "Approval Queue",     icon: CheckSquare, path: "/approvals" },
+      { label: "Learner Onboarding", icon: UserPlus,    path: "/learner/onboarding" },
+      { label: "Announcements",      icon: Bell,        path: "/announcements" },
+    ],
+  },
+  staffManagementSection,
+  programmeSection,
+  learningDesignSection,
+  deliverySection,
+  talentSponsorSection,
+  learningSection,
+  accountSection,
+];
+
+const systemsAdminSections: NavSection[] = [
+  {
+    title: "Technical / Admin",
+    domainColor: "hsl(0, 84%, 60%)",
+    items: [
+      { label: "Systems Admin",       icon: Cog,     path: "/systems-admin" },
+      { label: "User Directory",      icon: Users,   path: "/admin/users" },
+      { label: "Audit Logs",          icon: History, path: "/admin/audit-logs" },
+      { label: "Integrations",        icon: Plug,    path: "/admin/integrations" },
+    ],
+  },
+  staffManagementSection,
+  {
+    title: "Operations",
+    domainColor: "hsl(38, 92%, 50%)",
+    items: [
+      { label: "Approval Queue",     icon: CheckSquare, path: "/approvals" },
+      { label: "Announcements",      icon: Bell,        path: "/announcements" },
+    ],
+  },
+  accountSection,
+];
+
+const operationsSections: NavSection[] = [
+  {
+    title: "Operations",
+    domainColor: "hsl(38, 92%, 50%)",
+    items: [
+      { label: "Operations Control", icon: Activity,    path: "/operations" },
+      { label: "Approval Queue",     icon: CheckSquare, path: "/approvals" },
+      { label: "Learner Onboarding", icon: UserPlus,    path: "/learner/onboarding" },
+      { label: "Announcements",      icon: Bell,        path: "/announcements" },
+    ],
+  },
+  staffManagementSection,
+  {
+    title: "Programmes",
+    domainColor: "hsl(38, 92%, 50%)",
+    items: [
+      { label: "Programme Hub",    icon: GraduationCap, path: "/programmes" },
+      { label: "Cohort Management",icon: Layers,        path: "/cohort-management" },
+      { label: "Analytics",        icon: BarChart3,     path: "/analytics" },
+    ],
+  },
+  {
+    title: "Talent & Sponsors",
+    domainColor: "hsl(38, 92%, 50%)",
+    items: [
+      { label: "Talent Management",  icon: TrendingUp, path: "/talent" },
+      { label: "Sponsor Management", icon: Building2,  path: "/sponsors" },
+      { label: "Sponsor Onboarding", icon: UserPlus,   path: "/sponsor/onboarding" },
+    ],
+  },
+  accountSection,
+];
+
+const talentManagerSections: NavSection[] = [
+  {
+    title: "Talent Manager",
+    domainColor: "hsl(38, 92%, 50%)",
+    items: [
+      { label: "Dashboard",         icon: LayoutDashboard, path: "/talent-manager" },
+      { label: "Talent Management", icon: TrendingUp,      path: "/talent" },
+    ],
+  },
+  staffManagementSection,
+  accountSection,
+];
+
+const programmManagerSections: NavSection[] = [
+  programmeSection,
+  learningDesignSection,
+  deliverySection,
+  lxpSection,
+  {
+    title: "Learner Pipeline",
+    domainColor: "hsl(38, 92%, 50%)",
+    items: [
+      { label: "Learner Onboarding", icon: UserPlus,    path: "/learner/onboarding" },
+      { label: "Approval Queue",     icon: CheckSquare, path: "/approvals" },
+      { label: "Sponsor Management", icon: Building2,   path: "/sponsors" },
+    ],
+  },
+  staffManagementSection,
+  accountSection,
+];
+
+// ── Role → sections lookup ─────────────────────────────────────────────────────
 const roleSectionMap: Partial<Record<AppRole, NavSection[]>> = {
-  programme_manager: [
-    programmeSection,
-    learningDesignSection,
-    deliverySection,
-    lxpSection,
-    learnerPipelineSection,
+  super_admin:       superAdminSections,
+  systems_admin:     systemsAdminSections,
+  operations:        operationsSections,
+  talent_manager:    talentManagerSections,
+  programme_manager: programmManagerSections,
+  facilitator: [
+    {
+      title: "My Workspace",
+      domainColor: "hsl(210, 80%, 55%)",
+      items: [
+        { label: "Dashboard",          icon: LayoutDashboard, path: "/facilitator" },
+        { label: "Cohort Management",  icon: Layers,          path: "/cohort-management" },
+        { label: "Timetable",          icon: Calendar,        path: "/sessions" },
+        { label: "Learner Onboarding", icon: UserPlus,        path: "/learner/onboarding" },
+        { label: "Gradebook",          icon: FileCheck,       path: "/gradebook" },
+        { label: "Discussions",        icon: MessagesSquare,  path: "/discussions" },
+      ],
+    },
+    accountSection,
+  ],
+  assessor: [
+    {
+      title: "My Workspace",
+      domainColor: "hsl(210, 80%, 55%)",
+      items: [
+        { label: "Assessor Portal",      icon: ClipboardCheck, path: "/assessor" },
+        { label: "Assessment Builder",   icon: ClipboardCheck, path: "/assessments" },
+        { label: "Portfolio of Evidence",icon: FolderKanban,   path: "/portfolio" },
+      ],
+    },
+    accountSection,
+  ],
+  moderator: [
+    {
+      title: "My Workspace",
+      domainColor: "hsl(142, 71%, 45%)",
+      items: [
+        { label: "Moderator Portal",     icon: Flag,       path: "/moderator" },
+        { label: "Portfolio of Evidence",icon: FolderKanban,path: "/portfolio" },
+        { label: "Discussions",          icon: MessagesSquare, path: "/discussions" },
+      ],
+    },
+    accountSection,
+  ],
+  mentor: [
+    {
+      title: "My Workspace",
+      domainColor: "hsl(270, 70%, 60%)",
+      items: [
+        { label: "Mentor Portal", icon: Heart,          path: "/mentor" },
+        { label: "Discussions",   icon: MessagesSquare, path: "/discussions" },
+        { label: "Timetable",     icon: Calendar,       path: "/sessions" },
+      ],
+    },
+    accountSection,
+  ],
+  learner: [
+    {
+      title: "My Learning",
+      domainColor: "hsl(210, 80%, 55%)",
+      items: [
+        { label: "Dashboard",            icon: LayoutDashboard, path: "/learner" },
+        { label: "Portfolio of Evidence",icon: FolderKanban,    path: "/portfolio" },
+        { label: "Discussions",          icon: MessagesSquare,  path: "/discussions" },
+        { label: "Credentials",          icon: Award,           path: "/credentials" },
+      ],
+    },
+    accountSection,
+  ],
+  sponsor: [
+    {
+      title: "Sponsor",
+      domainColor: "hsl(38, 92%, 50%)",
+      items: [
+        { label: "Sponsor Portal", icon: Building2, path: "/sponsor-portal" },
+      ],
+    },
     accountSection,
   ],
 };
 
-// Role display labels and portal subtitles
+// ── Role display labels and portal subtitles ──────────────────────────────────
 const roleDisplayConfig: Partial<Record<AppRole, { label: string; subtitle: string; color: string }>> = {
-  super_admin: { label: "Super Admin", subtitle: "Platform Control", color: "hsl(0,84%,60%)" },
-  systems_admin: { label: "Systems Admin", subtitle: "System Management", color: "hsl(0,84%,60%)" },
-  programme_manager: { label: "Programme Manager", subtitle: "Programme Oversight", color: "hsl(38,92%,50%)" },
-  facilitator: { label: "Facilitator", subtitle: "Session Delivery", color: "hsl(210,80%,55%)" },
-  assessor: { label: "Assessor", subtitle: "Assessment & Marking", color: "hsl(210,80%,55%)" },
-  moderator: { label: "Moderator", subtitle: "Quality Assurance", color: "hsl(142,71%,45%)" },
-  mentor: { label: "Mentor", subtitle: "Learner Mentoring", color: "hsl(270,70%,60%)" },
-  learner: { label: "Learner", subtitle: "My Learning Journey", color: "hsl(210,80%,55%)" },
-  sponsor: { label: "Sponsor", subtitle: "Sponsorship Overview", color: "hsl(38,92%,50%)" },
-  operations: { label: "Operations", subtitle: "Operational Control", color: "hsl(38,92%,50%)" },
-  talent_manager: { label: "Talent Manager", subtitle: "Talent Pipeline", color: "hsl(38,92%,50%)" },
+  super_admin:       { label: "Super Admin",        subtitle: "Platform Control",      color: "hsl(0,84%,60%)" },
+  systems_admin:     { label: "Systems Admin",       subtitle: "System Management",     color: "hsl(0,84%,60%)" },
+  programme_manager: { label: "Programme Manager",   subtitle: "Programme Oversight",   color: "hsl(38,92%,50%)" },
+  facilitator:       { label: "Facilitator",         subtitle: "Session Delivery",      color: "hsl(210,80%,55%)" },
+  assessor:          { label: "Assessor",            subtitle: "Assessment & Marking",  color: "hsl(210,80%,55%)" },
+  moderator:         { label: "Moderator",           subtitle: "Quality Assurance",     color: "hsl(142,71%,45%)" },
+  mentor:            { label: "Mentor",              subtitle: "Learner Mentoring",     color: "hsl(270,70%,60%)" },
+  learner:           { label: "Learner",             subtitle: "My Learning Journey",   color: "hsl(210,80%,55%)" },
+  sponsor:           { label: "Sponsor",             subtitle: "Sponsorship Overview",  color: "hsl(38,92%,50%)" },
+  operations:        { label: "Operations",          subtitle: "Operational Control",   color: "hsl(38,92%,50%)" },
+  talent_manager:    { label: "Talent Manager",      subtitle: "Talent Pipeline",       color: "hsl(38,92%,50%)" },
 };
 
+// Fallback for any role not in the map above
 const allSectionsDefault: NavSection[] = [
   technicalSection,
   operationsSection,
+  staffManagementSection,
   programmeSection,
   learningDesignSection,
   deliverySection,
