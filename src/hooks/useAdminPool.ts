@@ -125,18 +125,30 @@ export function usePoolMembers(statusFilter?: string) {
   return useQuery({
     queryKey: ["admin_pool_members", statusFilter],
     queryFn: async () => {
+      // Step 1: fetch pool members + config (config has a proper FK)
       let q = db
         .from("admin_pool_members")
-        .select(`
-          *,
-          profile:profiles!admin_pool_members_user_id_fkey(full_name, avatar_url, job_title),
-          config:admin_pool_config!admin_pool_members_role_key_fkey(*)
-        `)
+        .select("*, config:admin_pool_config!admin_pool_members_role_key_fkey(*)")
         .order("added_at", { ascending: false });
       if (statusFilter && statusFilter !== "all") q = q.eq("pool_status", statusFilter);
       const { data, error } = await q;
       if (error) throw error;
-      return data as PoolMember[];
+      if (!data?.length) return [] as PoolMember[];
+
+      // Step 2: fetch profiles separately (no direct FK from admin_pool_members → profiles)
+      const userIds = (data as any[]).map((m: any) => m.user_id);
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, avatar_url, job_title")
+        .in("user_id", userIds);
+      const profileMap = Object.fromEntries(
+        (profiles ?? []).map((p: any) => [p.user_id, p])
+      );
+
+      return (data as any[]).map((m: any) => ({
+        ...m,
+        profile: profileMap[m.user_id] ?? { full_name: null, avatar_url: null, job_title: null },
+      })) as PoolMember[];
     },
   });
 }
@@ -175,23 +187,42 @@ export function useAllocations(filter?: { status?: string; allocatorId?: string 
   return useQuery({
     queryKey: ["admin_allocations", filter],
     queryFn: async () => {
+      // Step 1: fetch allocations + nested member (no profile joins — resolved separately)
       let q = db
         .from("admin_allocations")
-        .select(`
-          *,
-          member:admin_pool_members(
-            id, role_key, user_id,
-            profile:profiles!admin_pool_members_user_id_fkey(full_name, avatar_url)
-          ),
-          allocator_profile:profiles!admin_allocations_allocator_id_fkey(full_name),
-          allocated_profile:profiles!admin_allocations_allocated_user_id_fkey(full_name)
-        `)
+        .select("*, member:admin_pool_members(id, role_key, user_id)")
         .order("created_at", { ascending: false });
       if (filter?.status && filter.status !== "all") q = q.eq("status", filter.status);
       if (filter?.allocatorId) q = q.eq("allocator_id", filter.allocatorId);
       const { data, error } = await q;
       if (error) throw error;
-      return data as AdminAllocation[];
+      if (!data?.length) return [] as AdminAllocation[];
+
+      // Step 2: collect all unique user IDs (allocated, allocator, member)
+      const allUserIds = new Set<string>();
+      (data as any[]).forEach((a: any) => {
+        if (a.allocated_user_id) allUserIds.add(a.allocated_user_id);
+        if (a.allocator_id)      allUserIds.add(a.allocator_id);
+        if (a.member?.user_id)   allUserIds.add(a.member.user_id);
+      });
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, full_name")
+        .in("user_id", [...allUserIds]);
+      const profileMap = Object.fromEntries(
+        (profiles ?? []).map((p: any) => [p.user_id, p])
+      );
+
+      return (data as any[]).map((a: any) => ({
+        ...a,
+        allocator_profile:  profileMap[a.allocator_id]      ?? { full_name: null },
+        allocated_profile:  profileMap[a.allocated_user_id] ?? { full_name: null },
+        member: a.member ? {
+          ...a.member,
+          profile: profileMap[a.member.user_id] ?? { full_name: null, avatar_url: null },
+        } : null,
+      })) as AdminAllocation[];
     },
   });
 }
