@@ -3,8 +3,8 @@ import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { usePortalSwitcher } from "@/hooks/usePortalSwitcher";
 import { useRealtimeRoleSync } from "@/hooks/useRealtimeRoleSync";
-import AppLayout from "@/components/layout/AppLayout";
 import PortalLayout from "@/components/layout/PortalLayout";
+import TopBar from "@/components/layout/TopBar";
 import {
   getDomainPortalForUser,
   domainPortals,
@@ -130,5 +130,21 @@ export default function RoleBasedLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  return <AppLayout>{children}</AppLayout>;
+  // No roles assigned — show a bare shell with a notice
+  return (
+    <div className="min-h-screen bg-background">
+      <TopBar />
+      <main className="p-8 max-w-md mx-auto mt-16 text-center space-y-4">
+        <div className="w-12 h-12 rounded-full bg-warning/10 flex items-center justify-center mx-auto">
+          <svg className="w-6 h-6 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z" />
+          </svg>
+        </div>
+        <h2 className="text-lg font-semibold text-foreground">No role assigned</h2>
+        <p className="text-sm text-muted-foreground">
+          Your account exists but has not been assigned a role yet. Please contact your administrator.
+        </p>
+      </main>
+    </div>
+  );
 }
