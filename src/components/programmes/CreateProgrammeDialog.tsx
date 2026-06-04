@@ -212,7 +212,7 @@ export default function CreateProgrammeDialog({ programme, open, onOpenChange, t
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
 
-      <DialogContent className="sm:max-w-[680px] max-h-[90vh] flex flex-col p-0">
+      <DialogContent className="sm:max-w-[850px] max-h-[90vh] flex flex-col p-0">
         <DialogHeader className="px-6 pt-6 pb-0 shrink-0">
           <DialogTitle className="text-base font-semibold">
             {isEdit ? "Edit Programme" : "Register New Programme"}
@@ -296,7 +296,7 @@ export default function CreateProgrammeDialog({ programme, open, onOpenChange, t
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {visibleTypes.map((t: any) => (
                       <TypeCard
                         key={t.id}

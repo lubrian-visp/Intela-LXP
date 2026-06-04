@@ -5,7 +5,7 @@ import {
   Plus, Eye, Pencil, Trash2, MoreHorizontal,
   UserPlus, CheckSquare, XCircle,
   Mail, Phone, Building2, Calendar, Filter,
-  Settings2,
+  Settings2, Send,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import StaffRegistrationForm from "@/components/onboarding/StaffRegistrationForm";
 import AdminPasswordResetButton from "@/components/admin/AdminPasswordResetButton";
 import StaffVerificationPanel from "@/components/onboarding/StaffVerificationPanel";
+import ComposeEmailDialog from "@/components/email/ComposeEmailDialog";
 import StaffProfileDialog from "@/components/onboarding/StaffProfileDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -140,6 +141,7 @@ export default function StaffOnboarding() {
   const [deletingStaff, setDeletingStaff]     = useState<StaffRegistration | null>(null);
   const [deleting, setDeleting]               = useState(false);
   const [managingCatalog, setManagingCatalog] = useState(false);
+  const [composeEmail, setComposeEmail]       = useState<{ email: string; name: string; role?: string } | null>(null);
 
   const { user, roles } = useAuth();
   const isSuperOrSysAdmin = roles.some(r => ["super_admin", "systems_admin"].includes(r as string));
@@ -275,6 +277,9 @@ export default function StaffOnboarding() {
                 <Settings2 className="w-4 h-4" /> Manage Roles
               </Button>
             )}
+            <Button variant="outline" size="sm" className="gap-2 text-sm" onClick={() => setComposeEmail({ email: "", name: "" })}>
+              <Send className="w-4 h-4" /> Compose Email
+            </Button>
             <Button onClick={() => setShowForm(true)} className="gap-2 text-sm" size="sm">
               <UserPlus className="w-4 h-4" /> Register Staff
             </Button>
@@ -586,6 +591,12 @@ export default function StaffOnboarding() {
                                     <DropdownMenuItem asChild>
                                       <AdminPasswordResetButton email={s.email} userName={s.full_name} variant="dropdown" />
                                     </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() => setComposeEmail({ email: s.email, name: s.full_name, role: s.role_requested })}
+                                      className="text-xs gap-2"
+                                    >
+                                      <Send className="w-3.5 h-3.5" /> Send Email
+                                    </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem onClick={() => setDeletingStaff(s)} className="text-xs gap-2 text-destructive focus:text-destructive">
                                       <Trash2 className="w-3.5 h-3.5" /> Remove Staff
@@ -713,6 +724,13 @@ export default function StaffOnboarding() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Compose Email Dialog */}
+      <ComposeEmailDialog
+        open={!!composeEmail}
+        onOpenChange={v => { if (!v) setComposeEmail(null); }}
+        prefilledRecipient={composeEmail ?? undefined}
+      />
 
       {/* Role Catalog Manager */}
       <StaffRoleCatalogManager
