@@ -217,8 +217,9 @@ export function useLdAllocations(filter?: { status?: string; allocatedUserId?: s
   return useQuery({
     queryKey: ["ld_allocations", filter],
     queryFn: async () => {
+      // Read from unified view that combines ld_allocations + cohort_staff_assignments
       let q = db
-        .from("ld_allocations")
+        .from("ld_pool_allocations_view")
         .select("*, member:ld_pool_members(id, role_key, user_id, display_role)")
         .order("created_at", { ascending: false });
       if (filter?.status && filter.status !== "all") q = q.eq("status", filter.status);
