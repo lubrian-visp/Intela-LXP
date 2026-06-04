@@ -6,6 +6,7 @@
  * Falls back to SMTP only if Resend is not configured.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -44,6 +45,48 @@ function buildHtml(subject: string, body: string, fromName: string): string {
   </div>
 </body>
 </html>`;
+}
+
+// ── SMTP sender via denomailer ────────────────────────────────────────────────
+async function sendViaSMTP(
+  recipients: string[],
+  subject: string,
+  html: string,
+  cfg: Record<string, string>,
+): Promise<{ email: string; status: "sent" | "failed"; error?: string }[]> {
+  const port     = parseInt(cfg.smtp_port || "465", 10);
+  const useTls   = cfg.smtp_use_ssl === "true" || port === 465;
+  const fromName = cfg.smtp_from_name || "Intela LXP";
+  const replyTo  = cfg.smtp_reply_to  || cfg.smtp_username;
+
+  const results: { email: string; status: "sent" | "failed"; error?: string }[] = [];
+
+  for (const to of recipients) {
+    const client = new SMTPClient({
+      connection: {
+        hostname: cfg.smtp_host,
+        port,
+        tls: useTls,
+        auth: { username: cfg.smtp_username, password: cfg.smtp_password },
+      },
+    });
+    try {
+      await client.send({
+        from:    `${fromName} <${cfg.smtp_username}>`,
+        to,
+        replyTo,
+        subject,
+        html,
+        content: html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim(),
+      });
+      results.push({ email: to, status: "sent" });
+    } catch (e: any) {
+      results.push({ email: to, status: "failed", error: e.message });
+    } finally {
+      await client.close().catch(() => {});
+    }
+  }
+  return results;
 }
 
 // ── Resend sender ─────────────────────────────────────────────────────────────
@@ -146,12 +189,25 @@ Deno.serve(async (req) => {
       );
     }
 
-    // SMTP path — note: raw TCP is blocked in Supabase edge runtime.
-    // If SMTP is selected, advise switching to Resend.
+    // SMTP path via denomailer
+    if (provider === "smtp") {
+      if (!cfg.smtp_host || !cfg.smtp_username || !cfg.smtp_password) {
+        return new Response(
+          JSON.stringify({ error: "SMTP host, username and password are required. Go to Platform Settings → Email." }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const results = await sendViaSMTP(recipients, subject, html, cfg);
+      const sent   = results.filter(r => r.status === "sent").length;
+      const failed = results.filter(r => r.status === "failed").length;
+      return new Response(
+        JSON.stringify({ sent, failed, results }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     return new Response(
-      JSON.stringify({
-        error: "SMTP is not supported in the edge runtime. Please switch to Resend in Platform Settings → Email → System Email Provider.",
-      }),
+      JSON.stringify({ error: "Invalid provider configured." }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
 

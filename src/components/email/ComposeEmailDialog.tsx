@@ -232,15 +232,6 @@ export default function ComposeEmailDialog({
             </div>
           </div>
 
-          {/* SMTP warning */}
-          {!isResend && (
-            <div className="flex items-start gap-2 mt-3 px-3 py-2 rounded-lg bg-orange-500/8 border border-orange-500/20">
-              <AlertTriangle className="w-3.5 h-3.5 text-orange-500 shrink-0 mt-0.5" />
-              <p className="text-[11px] text-orange-600">
-                SMTP is selected but may not work in this environment. Switch to <strong>Resend</strong> in Platform Settings → Email for reliable delivery.
-              </p>
-            </div>
-          )}
 
           {/* Step tabs */}
           <div className="flex gap-1 mt-4 border-b border-border">

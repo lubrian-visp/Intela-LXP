@@ -1,98 +1,45 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-/* ── SMTP raw-socket sender (mirrors send-test-email logic) ── */
+/* ── SMTP via denomailer (proper Deno SMTP client) ── */
 async function sendViaSMTP(
   to: string,
   subject: string,
   html: string,
   config: Record<string, string>,
 ) {
-  const port = parseInt(config.smtp_port || "465", 10);
-  const useTls = config.smtp_use_ssl === "true";
-  const username = config.smtp_username;
-  const password = config.smtp_password;
-  const host = config.smtp_host;
+  const port     = parseInt(config.smtp_port || "465", 10);
+  const useTls   = config.smtp_use_ssl === "true" || port === 465;
   const fromName = config.smtp_from_name || "Intela";
-  const replyTo = config.smtp_reply_to || username;
+  const replyTo  = config.smtp_reply_to  || config.smtp_username;
 
-  const boundary = `boundary_${crypto.randomUUID().replace(/-/g, "")}`;
-  const plainText = html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
-
-  const message = [
-    `From: ${fromName} <${username}>`,
-    `To: ${to}`,
-    `Reply-To: ${replyTo}`,
-    `Subject: ${subject}`,
-    `MIME-Version: 1.0`,
-    `Content-Type: multipart/alternative; boundary="${boundary}"`,
-    `Date: ${new Date().toUTCString()}`,
-    "",
-    `--${boundary}`,
-    "Content-Type: text/plain; charset=UTF-8",
-    "",
-    plainText,
-    "",
-    `--${boundary}`,
-    "Content-Type: text/html; charset=UTF-8",
-    "",
-    html,
-    "",
-    `--${boundary}--`,
-  ].join("\r\n");
-
-  const conn = useTls
-    ? await Deno.connectTls({ hostname: host, port })
-    : await Deno.connect({ hostname: host, port });
-
-  const encoder = new TextEncoder();
-  const decoder = new TextDecoder();
-
-  async function readResponse(): Promise<string> {
-    const buf = new Uint8Array(1024);
-    const n = await conn.read(buf);
-    if (n === null) throw new Error("Connection closed unexpectedly");
-    return decoder.decode(buf.subarray(0, n));
-  }
-
-  async function sendCommand(cmd: string): Promise<string> {
-    await conn.write(encoder.encode(cmd + "\r\n"));
-    return await readResponse();
-  }
+  const client = new SMTPClient({
+    connection: {
+      hostname: config.smtp_host,
+      port,
+      tls: useTls,
+      auth: {
+        username: config.smtp_username,
+        password: config.smtp_password,
+      },
+    },
+  });
 
   try {
-    await readResponse(); // greeting
-    await sendCommand(`EHLO ${host}`);
-
-    if (!useTls && port === 587) {
-      await sendCommand("STARTTLS");
-    }
-
-    await sendCommand("AUTH LOGIN");
-    await sendCommand(btoa(username));
-    const authResp = await sendCommand(btoa(password));
-
-    if (!authResp.includes("235") && !authResp.includes("Authentication successful")) {
-      throw new Error("SMTP authentication failed: " + authResp.trim());
-    }
-
-    await sendCommand(`MAIL FROM:<${username}>`);
-    await sendCommand(`RCPT TO:<${to}>`);
-    await sendCommand("DATA");
-
-    const dataResp = await sendCommand(message + "\r\n.");
-    if (!dataResp.startsWith("250")) {
-      throw new Error("Failed to send message: " + dataResp.trim());
-    }
-
-    await sendCommand("QUIT");
-    conn.close();
-  } catch (error) {
-    try { conn.close(); } catch (_) { /* ignore */ }
-    throw error;
+    await client.send({
+      from:    `${fromName} <${config.smtp_username}>`,
+      to,
+      replyTo,
+      subject,
+      html,
+      content: html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim(),
+    });
+  } finally {
+    await client.close();
   }
 }
 

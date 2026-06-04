@@ -213,10 +213,38 @@ export default function EmailConfigSection() {
           <p className="text-[11px] text-muted-foreground mt-1">Configure your SMTP server for sending transactional emails. All credentials are encrypted and stored securely.</p>
         </div>
         <div className="p-6 space-y-4">
+          {/* Quick reference for common providers */}
+          <div className="rounded-xl bg-secondary/40 border border-border/50 overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-border/30">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Common SMTP Providers</p>
+            </div>
+            <div className="divide-y divide-border/30">
+              {[
+                { name: "Gmail",          host: "smtp.gmail.com",          port: "587", note: "Enable App Password in Google Account → Security" },
+                { name: "Outlook / M365", host: "smtp.office365.com",      port: "587", note: "Use your Microsoft 365 email + password" },
+                { name: "Yahoo",          host: "smtp.mail.yahoo.com",      port: "587", note: "Enable App Password in Yahoo account settings" },
+                { name: "Resend SMTP",    host: "smtp.resend.com",          port: "465", note: "Username: 'resend' · Password: your Resend API key" },
+                { name: "SendGrid",       host: "smtp.sendgrid.net",        port: "587", note: "Username: 'apikey' · Password: your SendGrid API key" },
+                { name: "Mailgun",        host: "smtp.mailgun.org",         port: "587", note: "Use Mailgun SMTP credentials from your domain" },
+                { name: "Amazon SES",     host: "email-smtp.us-east-1.amazonaws.com", port: "587", note: "Use SES SMTP credentials (IAM user)" },
+              ].map(p => (
+                <div key={p.name} className="flex items-center gap-3 px-4 py-2.5 hover:bg-secondary/40 cursor-pointer transition-colors"
+                  onClick={() => setSmtpForm(f => ({ ...f, smtp_host: p.host, smtp_port: p.port, smtp_use_ssl: p.port === "465" ? "true" : "false" }))}>
+                  <span className="text-[12px] font-semibold text-foreground w-28 shrink-0">{p.name}</span>
+                  <span className="text-[11px] font-mono text-muted-foreground w-44 shrink-0">{p.host}:{p.port}</span>
+                  <span className="text-[10px] text-muted-foreground/70">{p.note}</span>
+                </div>
+              ))}
+            </div>
+            <div className="px-4 py-2.5 bg-blue-500/5 border-t border-blue-500/10">
+              <p className="text-[10px] text-blue-600">💡 Click any row to auto-fill the host and port fields below.</p>
+            </div>
+          </div>
+
           {smtpForm.smtp_host && (
             <div className="flex items-center gap-2 p-2 rounded-lg bg-success/5 border border-success/20">
               <CheckCircle2 className="w-3.5 h-3.5 text-success" />
-              <p className="text-[11px] text-success">SMTP configured</p>
+              <p className="text-[11px] text-success">SMTP host configured — click "Send Test Email" to verify the connection</p>
             </div>
           )}
 
