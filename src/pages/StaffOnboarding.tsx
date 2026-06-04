@@ -197,6 +197,9 @@ export default function StaffOnboarding() {
       toast.success("Staff approved — portal access granted.");
       setVerifyingStaff(null);
     },
+    onError: (err: any) => {
+      toast.error("Approval failed", { description: err?.message ?? "Please try again." });
+    },
   });
 
   const rejectStaff = useMutation({
@@ -686,6 +689,7 @@ export default function StaffOnboarding() {
           staffName={verifyingStaff.full_name}
           onVerificationComplete={() => approveStaff.mutate(verifyingStaff.id)}
           onClose={() => setVerifyingStaff(null)}
+          isApproving={approveStaff.isPending}
         />
       )}
 

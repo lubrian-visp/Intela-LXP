@@ -1,7 +1,7 @@
 import { useState } from "react";
 import {
   CheckCircle2, XCircle, AlertTriangle, Clock, ChevronDown, ChevronRight,
-  Send, Link2, Copy, ShieldCheck, FileText, Ban
+  Send, Link2, Copy, ShieldCheck, FileText, Ban, Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,9 +27,11 @@ interface Props {
   staffName: string;
   onVerificationComplete?: () => void;
   onClose: () => void;
+  /** Pass approveStaff.isPending so the button shows loading state */
+  isApproving?: boolean;
 }
 
-export default function StaffVerificationPanel({ registrationId, staffName, onVerificationComplete, onClose }: Props) {
+export default function StaffVerificationPanel({ registrationId, staffName, onVerificationComplete, onClose, isApproving }: Props) {
   const [expandedSections, setExpandedSections] = useState<string[]>(STAFF_CHECKLIST_SECTIONS.map(s => s.key));
   const [noteItemId, setNoteItemId] = useState<string | null>(null);
   const [noteText, setNoteText] = useState("");
@@ -287,8 +289,16 @@ export default function StaffVerificationPanel({ registrationId, staffName, onVe
         <div className="px-6 py-4 border-t border-border flex items-center justify-between shrink-0">
           <Button variant="ghost" className="text-xs" onClick={onClose}>Close</Button>
           {summary.allPassed && onVerificationComplete && (
-            <Button className="text-xs gap-1.5" onClick={onVerificationComplete}>
-              <CheckCircle2 className="w-3.5 h-3.5" /> Complete Verification & Approve
+            <Button
+              className="text-xs gap-1.5 min-w-[210px]"
+              onClick={onVerificationComplete}
+              disabled={isApproving}
+            >
+              {isApproving ? (
+                <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Approving…</>
+              ) : (
+                <><CheckCircle2 className="w-3.5 h-3.5" /> Complete Verification & Approve</>
+              )}
             </Button>
           )}
         </div>
