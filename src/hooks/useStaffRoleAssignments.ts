@@ -10,6 +10,7 @@ export const L_AND_D_ROLES = [
   "Assessor",
   "Moderator",
   "Mentor",
+  "L&D Support Officer",
   "Skills Development Facilitator",
   "Learning Material Developer",
   "Instructional Designer",

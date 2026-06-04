@@ -74,13 +74,14 @@ const auditActionLabels: Record<string, string> = {
 type TabKey = "repository" | "directory" | "audit";
 
 const roleColorMap: Record<string, string> = {
-  "Facilitator": "bg-primary/10 text-primary border-primary/20",
-  "Assessor": "bg-info/10 text-info border-info/20",
-  "Moderator": "bg-accent/10 text-accent border-accent/20",
-  "Mentor": "bg-success/10 text-success border-success/20",
+  "Facilitator":                "bg-primary/10 text-primary border-primary/20",
+  "Assessor":                   "bg-info/10 text-info border-info/20",
+  "Moderator":                  "bg-accent/10 text-accent border-accent/20",
+  "Mentor":                     "bg-success/10 text-success border-success/20",
+  "L&D Support Officer":        "bg-purple-500/10 text-purple-600 border-purple-500/20",
   "Skills Development Facilitator": "bg-warning/10 text-warning border-warning/20",
-  "Learning Material Developer": "bg-destructive/10 text-destructive border-destructive/20",
-  "Instructional Designer": "bg-secondary text-foreground border-border",
+  "Learning Material Developer":"bg-destructive/10 text-destructive border-destructive/20",
+  "Instructional Designer":     "bg-secondary text-foreground border-border",
 };
 
 export default function StaffOnboarding() {

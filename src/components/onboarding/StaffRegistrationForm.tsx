@@ -70,14 +70,15 @@ export default function StaffRegistrationForm({ onBack, onClose }: Props) {
   };
 
   const roleToUserType: Record<string, string> = {
-    "Programme Manager": "staff_programme_manager",
-    "Facilitator": "staff_facilitator",
-    "Assessor": "staff_assessor",
-    "Moderator": "staff_moderator",
-    "Mentor": "staff_mentor",
-    "Operations": "staff_operations",
-    "Systems Admin": "staff_systems_admin",
-    "Talent Manager": "staff_talent_manager",
+    "Programme Manager":       "staff_programme_manager",
+    "Facilitator":             "staff_facilitator",
+    "Assessor":                "staff_assessor",
+    "Moderator":               "staff_moderator",
+    "Mentor":                  "staff_mentor",
+    "L&D Support Officer":     "staff_ld_support_officer",
+    "Operations":              "staff_operations",
+    "Systems Admin":           "staff_systems_admin",
+    "Talent Manager":          "staff_talent_manager",
   };
 
   const handleSubmit = async () => {

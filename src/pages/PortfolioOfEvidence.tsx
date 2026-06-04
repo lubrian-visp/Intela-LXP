@@ -18,7 +18,7 @@ import {
   usePortfolioEvidence, useReviewPoeItem, useBulkReviewPoeItems, useSendToModeration, PoeItem,
 } from "@/hooks/usePortfolioEvidence";
 
-const STAFF_ROLES = ["programme_manager", "assessor", "moderator", "mentor", "operations", "super_admin", "systems_admin"];
+const STAFF_ROLES = ["programme_manager", "assessor", "moderator", "mentor", "operations", "super_admin", "systems_admin", "ld_support_officer"];
 
 const statusConfig: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode; tone: "neutral" | "info" | "success" | "warning" | "danger" }> = {
   pending: { label: "Pending", color: "text-muted-foreground", bg: "bg-secondary", icon: <Clock className="w-3.5 h-3.5" />, tone: "neutral" },

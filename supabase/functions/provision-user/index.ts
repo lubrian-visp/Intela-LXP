@@ -98,15 +98,16 @@ serve(async (req) => {
     // If user_type is provided, assign the default role
     if (user_type && userId) {
       const roleMap: Record<string, string> = {
-        learner: "learner",
-        staff_programme_manager: "programme_manager",
-        staff_facilitator: "facilitator",
-        staff_assessor: "assessor",
-        staff_moderator: "moderator",
-        staff_mentor: "mentor",
-        staff_operations: "operations",
-        staff_systems_admin: "systems_admin",
-        staff_talent_manager: "talent_manager",
+        learner:                   "learner",
+        staff_programme_manager:   "programme_manager",
+        staff_facilitator:         "facilitator",
+        staff_assessor:            "assessor",
+        staff_moderator:           "moderator",
+        staff_mentor:              "mentor",
+        staff_ld_support_officer:  "ld_support_officer",
+        staff_operations:          "operations",
+        staff_systems_admin:       "systems_admin",
+        staff_talent_manager:      "talent_manager",
       };
 
       const role = roleMap[user_type];

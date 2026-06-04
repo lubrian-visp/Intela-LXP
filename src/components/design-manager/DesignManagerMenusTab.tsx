@@ -29,7 +29,7 @@ import {
 const ALL_ROLES = [
   "super_admin", "systems_admin", "programme_manager", "operations",
   "talent_manager", "sponsor", "facilitator", "assessor", "moderator",
-  "mentor", "learner",
+  "mentor", "learner", "ld_support_officer",
 ];
 
 const BUILT_IN_PATHS = [
