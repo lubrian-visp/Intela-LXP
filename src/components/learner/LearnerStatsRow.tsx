@@ -1,5 +1,5 @@
 import { BookOpen, Award, FileCheck, TrendingUp } from "lucide-react";
-import { StaggerContainer, StaggerItem } from "@/components/animations/MotionWrappers";
+import { KpiGrid } from "@/components/dashboard/DashboardShell";
 
 interface Props {
   activeCount: number;
@@ -9,26 +9,12 @@ interface Props {
 }
 
 export default function LearnerStatsRow({ activeCount, credentialCount, submissionCount, overallProgress }: Props) {
-  const stats = [
-    { label: "Active Programmes", value: activeCount, icon: <BookOpen className="w-4 h-4 text-info" /> },
-    { label: "Credentials Earned", value: credentialCount, icon: <Award className="w-4 h-4 text-accent" /> },
-    { label: "Submissions", value: submissionCount, icon: <FileCheck className="w-4 h-4 text-success" /> },
-    { label: "Overall Progress", value: `${overallProgress}%`, icon: <TrendingUp className="w-4 h-4 text-warning" /> },
+  const items = [
+    { label: "Active Programmes", value: activeCount, sub: "enrolled", trend: true, icon: BookOpen, iconBg: "bg-blue-500/10", iconColor: "text-blue-500" },
+    { label: "Credentials Earned", value: credentialCount, sub: "issued", trend: true, icon: Award, iconBg: "bg-yellow-500/10", iconColor: "text-yellow-500" },
+    { label: "Submissions", value: submissionCount, sub: "total", trend: true, icon: FileCheck, iconBg: "bg-green-500/10", iconColor: "text-green-500" },
+    { label: "Overall Progress", value: `${overallProgress}%`, sub: "avg. across programmes", trend: overallProgress > 50, icon: TrendingUp, iconBg: "bg-purple-500/10", iconColor: "text-purple-500" },
   ];
 
-  return (
-    <StaggerContainer className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      {stats.map(s => (
-        <StaggerItem key={s.label}>
-          <div className="bg-card rounded-xl p-4 shadow-card border border-border/50 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-secondary">{s.icon}</div>
-            <div>
-              <p className="text-lg font-bold text-foreground">{s.value}</p>
-              <p className="text-[10px] text-muted-foreground">{s.label}</p>
-            </div>
-          </div>
-        </StaggerItem>
-      ))}
-    </StaggerContainer>
-  );
+  return <KpiGrid items={items} />;
 }
