@@ -1,10 +1,10 @@
-import { 
-  LayoutDashboard, GraduationCap, Route, Users, BookOpen, 
-  FileCheck, Award, Settings, BarChart3, Building2, 
+import {
+  LayoutDashboard, GraduationCap, Route, Users, BookOpen,
+  FileCheck, Award, Settings, BarChart3, Building2,
   ChevronLeft, ChevronRight, Shield, LogOut, Bell, Cog, User, Menu, X, Briefcase, Handshake,
   ClipboardCheck, Heart, FolderKanban, Activity, UserPlus, Video,
   Layers, Flag, History, Plug, FileBarChart, Inbox, CheckSquare, UserCheck, MessagesSquare,
-  TrendingUp, Target, Calendar, Star, Lock, Gauge, AlertTriangle, HelpCircle,
+  TrendingUp, Target, Calendar, Star, Lock, Gauge, AlertTriangle, HelpCircle, ChevronDown,
 } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useBrandingLogos } from "@/hooks/useBrandingLogos";
@@ -19,6 +19,7 @@ interface NavItem {
   icon: any;
   path: string;
   roles?: AppRole[];
+  badge?: string;
 }
 
 interface NavSection {
@@ -27,7 +28,6 @@ interface NavSection {
   items: NavItem[];
 }
 
-// ── Technical / Admin ──
 const technicalSection: NavSection = {
   title: "Technical / Admin",
   domainColor: "hsl(0, 84%, 60%)",
@@ -45,7 +45,6 @@ const technicalSection: NavSection = {
   ],
 };
 
-// ── Operations ──
 const operationsSection: NavSection = {
   title: "Operations",
   domainColor: "hsl(38, 92%, 50%)",
@@ -58,24 +57,58 @@ const operationsSection: NavSection = {
   ],
 };
 
-// ── Programmes & Learning Design ──
 const programmeSection: NavSection = {
-  title: "Programmes & Design",
+  title: "Programme Setup",
   domainColor: "hsl(38, 92%, 50%)",
   items: [
-    { label: "Programme Manager", icon: GraduationCap, path: "/programme-manager", roles: ["programme_manager"] },
+    { label: "Dashboard", icon: LayoutDashboard, path: "/programme-manager", roles: ["programme_manager"] },
     { label: "Programme Hub", icon: GraduationCap, path: "/programmes", roles: ["super_admin", "programme_manager", "operations"] },
+    { label: "Programme Types", icon: Cog, path: "/admin/programme-types", roles: ["programme_manager"] },
     { label: "Cohort Management", icon: Layers, path: "/cohort-management", roles: ["super_admin", "programme_manager", "facilitator", "operations"] },
-    { label: "Learning Tracks", icon: Route, path: "/pathways", roles: ["super_admin", "programme_manager"] },
-    { label: "Learning Hub", icon: BookOpen, path: "/modules", roles: ["super_admin", "programme_manager", "facilitator"] },
-    { label: "Assessments", icon: ClipboardCheck, path: "/assessments", roles: ["super_admin", "programme_manager", "assessor", "moderator"] },
-    { label: "Credentials", icon: Award, path: "/credentials", roles: ["super_admin", "programme_manager"] },
     { label: "Timetable", icon: Calendar, path: "/sessions", roles: ["super_admin", "programme_manager"] },
-    { label: "Analytics", icon: BarChart3, path: "/analytics", roles: ["super_admin", "programme_manager", "operations"] },
   ],
 };
 
-// ── Talent & Sponsors ──
+const learningDesignSection: NavSection = {
+  title: "Learning Design",
+  domainColor: "hsl(210, 80%, 55%)",
+  items: [
+    { label: "Learning Tracks", icon: Route, path: "/pathways", roles: ["super_admin", "programme_manager"] },
+    { label: "Learning Hub", icon: BookOpen, path: "/modules", roles: ["super_admin", "programme_manager", "facilitator"] },
+    { label: "Assessment Builder", icon: ClipboardCheck, path: "/assessments", roles: ["super_admin", "programme_manager", "assessor", "moderator"] },
+    { label: "Portfolio of Evidence", icon: FolderKanban, path: "/portfolio", roles: ["super_admin", "programme_manager", "assessor", "moderator"] },
+  ],
+};
+
+const deliverySection: NavSection = {
+  title: "Delivery & Monitoring",
+  domainColor: "hsl(142, 71%, 45%)",
+  items: [
+    { label: "Gradebook", icon: FileCheck, path: "/gradebook", roles: ["super_admin", "programme_manager", "facilitator", "assessor"] },
+    { label: "Analytics", icon: BarChart3, path: "/analytics", roles: ["super_admin", "programme_manager", "operations"] },
+    { label: "Credentials", icon: Award, path: "/credentials", roles: ["super_admin", "programme_manager"] },
+  ],
+};
+
+const lxpSection: NavSection = {
+  title: "LXP Management",
+  domainColor: "hsl(270, 70%, 60%)",
+  items: [
+    { label: "Shared Content Library", icon: Layers, path: "/content-library", roles: ["super_admin", "programme_manager"] },
+    { label: "Challenge Exams", icon: Star, path: "/challenge-exams", roles: ["super_admin", "programme_manager"] },
+  ],
+};
+
+const learnerPipelineSection: NavSection = {
+  title: "Learner Pipeline",
+  domainColor: "hsl(38, 92%, 50%)",
+  items: [
+    { label: "Learner Onboarding", icon: UserPlus, path: "/learner/onboarding", roles: ["super_admin", "programme_manager", "operations", "facilitator"] },
+    { label: "Approval Queue", icon: CheckSquare, path: "/approvals", roles: ["operations", "programme_manager", "super_admin"] },
+    { label: "Sponsor Management", icon: Building2, path: "/sponsors", roles: ["super_admin", "operations", "programme_manager"] },
+  ],
+};
+
 const talentSponsorSection: NavSection = {
   title: "Talent & Sponsors",
   domainColor: "hsl(38, 92%, 50%)",
@@ -89,7 +122,6 @@ const talentSponsorSection: NavSection = {
   ],
 };
 
-// ── Learning & Development ──
 const learningSection: NavSection = {
   title: "Learning & Development",
   domainColor: "hsl(210, 80%, 55%)",
@@ -104,7 +136,6 @@ const learningSection: NavSection = {
   ],
 };
 
-// ── Account ──
 const accountSection: NavSection = {
   title: "Account",
   domainColor: "hsl(var(--muted-foreground))",
@@ -113,6 +144,44 @@ const accountSection: NavSection = {
     { label: "Help Centre", icon: HelpCircle, path: "/help" },
   ],
 };
+
+// Role-specific sidebar configs: each role gets a curated set of sections
+const roleSectionMap: Partial<Record<AppRole, NavSection[]>> = {
+  programme_manager: [
+    programmeSection,
+    learningDesignSection,
+    deliverySection,
+    lxpSection,
+    learnerPipelineSection,
+    accountSection,
+  ],
+};
+
+// Role display labels and portal subtitles
+const roleDisplayConfig: Partial<Record<AppRole, { label: string; subtitle: string; color: string }>> = {
+  super_admin: { label: "Super Admin", subtitle: "Platform Control", color: "hsl(0,84%,60%)" },
+  systems_admin: { label: "Systems Admin", subtitle: "System Management", color: "hsl(0,84%,60%)" },
+  programme_manager: { label: "Programme Manager", subtitle: "Programme Oversight", color: "hsl(38,92%,50%)" },
+  facilitator: { label: "Facilitator", subtitle: "Session Delivery", color: "hsl(210,80%,55%)" },
+  assessor: { label: "Assessor", subtitle: "Assessment & Marking", color: "hsl(210,80%,55%)" },
+  moderator: { label: "Moderator", subtitle: "Quality Assurance", color: "hsl(142,71%,45%)" },
+  mentor: { label: "Mentor", subtitle: "Learner Mentoring", color: "hsl(270,70%,60%)" },
+  learner: { label: "Learner", subtitle: "My Learning Journey", color: "hsl(210,80%,55%)" },
+  sponsor: { label: "Sponsor", subtitle: "Sponsorship Overview", color: "hsl(38,92%,50%)" },
+  operations: { label: "Operations", subtitle: "Operational Control", color: "hsl(38,92%,50%)" },
+  talent_manager: { label: "Talent Manager", subtitle: "Talent Pipeline", color: "hsl(38,92%,50%)" },
+};
+
+const allSectionsDefault: NavSection[] = [
+  technicalSection,
+  operationsSection,
+  programmeSection,
+  learningDesignSection,
+  deliverySection,
+  talentSponsorSection,
+  learningSection,
+  accountSection,
+];
 
 function filterByRole(items: NavItem[], userRoles: AppRole[]): NavItem[] {
   if (userRoles.includes("super_admin")) return items;
@@ -129,27 +198,24 @@ export default function AppSidebar() {
   const { headerLogo, headerLogoWidth } = useBrandingLogos();
 
   const typedRoles = roles as AppRole[];
+  const primaryRole = typedRoles[0] ?? null;
+  const roleConfig = primaryRole ? roleDisplayConfig[primaryRole] : null;
 
-  const allSections = [
-    technicalSection,
-    operationsSection,
-    programmeSection,
-    talentSponsorSection,
-    learningSection,
-    accountSection,
-  ];
+  // Use role-specific section set if available, otherwise fall back to full set
+  const baseSections = (primaryRole && roleSectionMap[primaryRole]) ?? allSectionsDefault;
 
-  const sections: NavSection[] = allSections
+  const sections: NavSection[] = baseSections
     .map(s => ({ ...s, items: filterByRole(s.items, typedRoles) }))
     .filter(s => s.items.length > 0);
 
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
-    : "U";
+    : (primaryRole ? primaryRole[0].toUpperCase() : "U");
 
-  const roleBadge = roles.length > 0
-    ? roles[0].replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())
-    : "User";
+  const displayName = profile?.full_name || "User";
+  const roleLabel = roleConfig?.label ?? (primaryRole ? primaryRole.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()) : "User");
+  const roleSubtitle = roleConfig?.subtitle ?? "";
+  const roleAccentColor = roleConfig?.color ?? "hsl(var(--primary))";
 
   useEffect(() => { setMobileOpen(false); }, [location.pathname]);
   useEffect(() => {
@@ -165,16 +231,26 @@ export default function AppSidebar() {
         key={item.path + item.label}
         to={item.path}
         className={cn(
-          "flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200",
+          "flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 group",
           isActive
             ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-sm"
-            : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+            : "text-sidebar-foreground/80 hover:bg-sidebar-accent/40 hover:text-sidebar-accent-foreground"
         )}
       >
-        <item.icon className={cn("w-4 h-4 shrink-0", isActive && "text-sidebar-primary")} />
-        {!collapsed && <span className="animate-fade-in truncate">{item.label}</span>}
+        <item.icon className={cn(
+          "w-4 h-4 shrink-0 transition-colors",
+          isActive ? "text-sidebar-primary" : "text-sidebar-foreground/50 group-hover:text-sidebar-foreground"
+        )} />
+        {!collapsed && (
+          <span className="animate-fade-in truncate flex-1">{item.label}</span>
+        )}
         {isActive && !collapsed && (
-          <div className="ml-auto w-1.5 h-1.5 rounded-full bg-sidebar-primary shrink-0" />
+          <div className="w-1.5 h-1.5 rounded-full bg-sidebar-primary shrink-0" />
+        )}
+        {item.badge && !collapsed && (
+          <span className="ml-auto text-[9px] font-bold bg-primary/20 text-primary px-1.5 py-0.5 rounded-full shrink-0">
+            {item.badge}
+          </span>
         )}
       </NavLink>
     );
@@ -182,75 +258,103 @@ export default function AppSidebar() {
 
   const sidebarContent = (
     <>
-      <div className="flex items-center gap-3 px-4 h-12 border-b border-sidebar-border">
+      {/* Header / Branding */}
+      <div className="flex items-center gap-3 px-4 h-14 border-b border-sidebar-border shrink-0">
         {headerLogo ? (
-          <img src={headerLogo} alt="Intela SkillChain logo" className="h-8 object-contain" style={{ maxWidth: `${headerLogoWidth}px` }} />
+          <img src={headerLogo} alt="Logo" className="h-8 object-contain" style={{ maxWidth: `${headerLogoWidth}px` }} />
         ) : (
           <>
-            <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-sidebar-primary">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-sidebar-primary shrink-0">
               <GraduationCap className="w-5 h-5 text-sidebar-primary-foreground" />
             </div>
             {!collapsed && (
-              <div className="animate-fade-in">
-                <h1 className="text-sm font-bold text-sidebar-accent-foreground tracking-tight">INTELA SKILLCHAIN</h1>
-                <p className="text-[10px] text-sidebar-foreground opacity-60 uppercase tracking-widest">Enterprise</p>
+              <div className="animate-fade-in min-w-0">
+                <h1 className="text-sm font-bold text-sidebar-accent-foreground tracking-tight truncate">INTELA SKILLCHAIN</h1>
+                <p className="text-[9px] text-sidebar-foreground/40 uppercase tracking-widest truncate">Enterprise LXP</p>
               </div>
             )}
           </>
         )}
-        <button onClick={() => setMobileOpen(false)} className="lg:hidden ml-auto p-1 rounded-lg hover:bg-sidebar-accent/30 transition-colors">
-          <X className="w-5 h-5 text-sidebar-foreground" />
+        <button
+          onClick={() => setMobileOpen(false)}
+          className="lg:hidden ml-auto p-1.5 rounded-lg hover:bg-sidebar-accent/30 transition-colors shrink-0"
+        >
+          <X className="w-4 h-4 text-sidebar-foreground" />
         </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5">
+      {/* Role context chip */}
+      {!collapsed && roleConfig && (
+        <div className="mx-3 mt-3 mb-1 px-3 py-2 rounded-lg border border-sidebar-border/50 bg-sidebar-accent/20 flex items-center gap-2.5 animate-fade-in">
+          <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: roleAccentColor }} />
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold text-sidebar-accent-foreground truncate">{roleLabel}</p>
+            <p className="text-[9px] text-sidebar-foreground/50 uppercase tracking-wider truncate">{roleSubtitle}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-0.5 min-h-0">
         {sections.map((section, idx) => (
           <div key={section.title}>
-            {idx > 0 && <div className="my-2 border-t border-sidebar-border" />}
-            <div className={cn("flex items-center gap-2 mb-2", collapsed ? "px-1 justify-center" : "px-3")}>
-              <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: section.domainColor }} />
-              {!collapsed && (
-                <p className="text-[10px] uppercase tracking-wider text-sidebar-foreground/40 font-semibold truncate">
+            {idx > 0 && <div className="my-2 border-t border-sidebar-border/40" />}
+            {!collapsed && (
+              <div className="flex items-center gap-2 px-3 mb-1.5">
+                <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: section.domainColor }} />
+                <p className="text-[9px] uppercase tracking-widest text-sidebar-foreground/35 font-semibold truncate">
                   {section.title}
                 </p>
-              )}
-            </div>
+              </div>
+            )}
             {section.items.map(renderNavItem)}
           </div>
         ))}
       </nav>
 
-      <div className="px-2 pb-4 space-y-2">
-        <div className={cn("flex items-center gap-3 px-3 py-2 rounded-lg bg-sidebar-accent/30", collapsed && "justify-center")}>
+      {/* User card + Sign out */}
+      <div className="px-2 pb-3 pt-2 border-t border-sidebar-border/50 shrink-0 space-y-1">
+        <button
+          onClick={() => navigate("/profile/me")}
+          className={cn(
+            "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-sidebar-accent/40 transition-colors group",
+            collapsed && "justify-center"
+          )}
+        >
           {profile?.avatar_url ? (
-            <img src={profile.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover shrink-0" />
+            <img src={profile.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover shrink-0 ring-2 ring-sidebar-primary/30" />
           ) : (
-            <div className="w-8 h-8 rounded-full bg-sidebar-primary flex items-center justify-center text-xs font-bold text-sidebar-primary-foreground shrink-0">
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ring-2 ring-offset-1 ring-offset-sidebar transition-colors"
+              style={{ backgroundColor: roleAccentColor, color: "white", ringColor: roleAccentColor }}
+            >
               {initials}
             </div>
           )}
           {!collapsed && (
-            <div className="animate-fade-in min-w-0">
-              <p className="text-xs font-semibold text-sidebar-accent-foreground truncate">{profile?.full_name || "User"}</p>
-              <p className="text-[10px] text-sidebar-foreground/60 truncate">{roleBadge}</p>
+            <div className="animate-fade-in min-w-0 text-left flex-1">
+              <p className="text-[13px] font-semibold text-sidebar-accent-foreground truncate leading-tight">{displayName}</p>
+              <p className="text-[10px] text-sidebar-foreground/50 truncate">{roleLabel}</p>
             </div>
           )}
-        </div>
+        </button>
+
         <button
           onClick={async () => { await signOut(); navigate("/"); }}
           className={cn(
-            "flex w-full items-center gap-2 px-3 py-2 rounded-lg text-sidebar-foreground/60 hover:bg-destructive/10 hover:text-destructive transition-colors text-sm",
+            "flex w-full items-center gap-2.5 px-3 py-2 rounded-lg text-sidebar-foreground/50 hover:bg-destructive/10 hover:text-destructive transition-colors text-[13px] font-medium",
             collapsed && "justify-center"
           )}
         >
           <LogOut className="w-4 h-4 shrink-0" />
           {!collapsed && <span className="animate-fade-in">Sign Out</span>}
         </button>
+
         <button
           onClick={() => setCollapsed(!collapsed)}
-          className="hidden lg:flex w-full items-center justify-center py-2 rounded-lg text-sidebar-foreground/60 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-colors"
+          className="hidden lg:flex w-full items-center justify-center py-1.5 rounded-lg text-sidebar-foreground/40 hover:bg-sidebar-accent/30 hover:text-sidebar-accent-foreground transition-colors"
         >
-          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+          {collapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
         </button>
       </div>
     </>
@@ -270,15 +374,15 @@ export default function AppSidebar() {
       )}
 
       <aside className={cn(
-        "lg:hidden fixed left-0 top-0 z-50 h-screen w-[280px] flex flex-col bg-sidebar border-r border-sidebar-border transition-transform duration-300",
+        "lg:hidden fixed left-0 top-0 z-50 h-screen w-[260px] flex flex-col bg-sidebar border-r border-sidebar-border transition-transform duration-300",
         mobileOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         {sidebarContent}
       </aside>
 
       <aside className={cn(
-        "hidden lg:flex fixed left-0 top-0 z-40 h-screen flex-col bg-sidebar transition-all duration-300 border-r border-sidebar-border",
-        collapsed ? "w-[68px]" : "w-[260px]"
+        "hidden lg:flex flex-col h-screen bg-sidebar border-r border-sidebar-border transition-all duration-300 shrink-0",
+        collapsed ? "w-[56px]" : "w-[230px]"
       )}>
         {sidebarContent}
       </aside>
