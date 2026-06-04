@@ -85,6 +85,7 @@ export default function ProgrammeTypes() {
   const [localConfigs, setLocalConfigs] = useState<Record<string, Record<string, any>>>({});
   const [hasChanges, setHasChanges] = useState(false);
   const [activeTab, setActiveTab] = useState<ConfigTab>("behaviour");
+  const [pendingSelectId, setPendingSelectId] = useState<string | null>(null); // unsaved-changes guard
 
   const [selectedCountryId, setSelectedCountryId] = useState<string | null>(null);
 
@@ -126,7 +127,19 @@ export default function ProgrammeTypes() {
     setHasChanges(true);
   };
 
+  // K/P/W validation — must equal 100% before saving
+  const kpwValid = resolvedConfig
+    ? (resolvedConfig.evaluation.knowledge_weight +
+       resolvedConfig.evaluation.practical_weight +
+       resolvedConfig.evaluation.workplace_weight) === 100
+    : true;
+
   const saveChanges = async () => {
+    if (!kpwValid) {
+      toast.error("K/P/W weights must total exactly 100% before saving. Go to the K/P/W tab to fix.");
+      setActiveTab("evaluation");
+      return;
+    }
     for (const [id, overrides] of Object.entries(localConfigs)) {
       const type = types.find(t => t.id === id);
       if (!type) continue;
@@ -137,6 +150,26 @@ export default function ProgrammeTypes() {
     setLocalConfigs({});
     setHasChanges(false);
     toast.success("Changes saved successfully");
+  };
+
+  // Unsaved-changes guard: intercept type switch
+  const requestSelectType = (id: string) => {
+    if (hasChanges && id !== effectiveSelectedId) {
+      setPendingSelectId(id);
+    } else {
+      setSelectedId(id);
+      setSelectedCountryId(null);
+    }
+  };
+
+  const confirmDiscardAndSwitch = () => {
+    if (pendingSelectId) {
+      setLocalConfigs({});
+      setHasChanges(false);
+      setSelectedId(pendingSelectId);
+      setSelectedCountryId(null);
+      setPendingSelectId(null);
+    }
   };
 
   const resetChanges = () => {
@@ -239,15 +272,18 @@ export default function ProgrammeTypes() {
           <button
             onClick={saveChanges}
             disabled={!hasChanges || updateMutation.isPending}
+            title={hasChanges && !kpwValid ? "K/P/W weights must total 100% before saving" : undefined}
             className={cn(
               "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all",
-              hasChanges
+              hasChanges && kpwValid
                 ? "bg-gradient-accent text-accent-foreground shadow-glow hover:opacity-90"
-                : "bg-secondary text-muted-foreground cursor-not-allowed"
+                : hasChanges && !kpwValid
+                  ? "bg-destructive/10 text-destructive border border-destructive/30 hover:bg-destructive/20"
+                  : "bg-secondary text-muted-foreground cursor-not-allowed"
             )}
           >
             {updateMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save Changes
+            {hasChanges && !kpwValid ? "Fix K/P/W first" : "Save Changes"}
           </button>
         </div>
       </div>
@@ -263,14 +299,31 @@ export default function ProgrammeTypes() {
           </div>
 
           <div className="space-y-2">
+            {types.length === 0 && (
+              <div className="rounded-xl border border-dashed border-border/50 bg-secondary/20 p-6 text-center">
+                <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center mx-auto mb-3">
+                  <Cog className="w-5 h-5 text-accent" />
+                </div>
+                <p className="text-sm font-semibold text-foreground">No programme types yet</p>
+                <p className="text-[11px] text-muted-foreground mt-1 mb-3">
+                  Create your first type or start from a template below.
+                </p>
+                <button
+                  onClick={() => openCreateModal()}
+                  className="text-xs font-medium px-3 py-1.5 rounded-lg bg-accent/10 text-accent hover:bg-accent/20 transition-colors"
+                >
+                  + Create a type
+                </button>
+              </div>
+            )}
             {types.map(t => (
               <TypeDNACard
                 key={t.id}
                 type={t}
                 isSelected={effectiveSelectedId === t.id}
-                onSelect={() => { setSelectedId(t.id); setSelectedCountryId(null); }}
+                onSelect={() => requestSelectType(t.id)}
                 onDelete={() => handleDelete(t.id)}
-                onEdit={() => { setSelectedId(t.id); openEditModal(); }}
+                onEdit={() => { requestSelectType(t.id); openEditModal(); }}
                 canDelete={t.programme_count === 0}
               />
             ))}
@@ -410,8 +463,8 @@ export default function ProgrammeTypes() {
               </div>
             </div>
 
-            {/* Conditional Hints */}
-            <ConditionalHints config={resolvedConfig} />
+            {/* Conditional Hints — each hint navigates to the relevant tab */}
+            <ConditionalHints config={resolvedConfig} onNavigate={setActiveTab} />
 
             {/* Impact Analysis */}
             <ImpactAnalysisPanel type={selected} hasChanges={hasChanges} />
@@ -458,8 +511,10 @@ export default function ProgrammeTypes() {
         {selectedCountryId && selected && (
           <div className="lg:col-span-2 space-y-4" key={selectedCountryId}>
             {overlayLoading ? (
-              <div className="flex items-center justify-center h-32">
-                <Loader2 className="w-5 h-5 animate-spin text-accent" />
+              <div className="space-y-3">
+                <div className="h-32 bg-card rounded-xl border border-border/50 animate-pulse" />
+                <div className="h-24 bg-card rounded-xl border border-border/50 animate-pulse" />
+                <div className="h-20 bg-card rounded-xl border border-border/50 animate-pulse" />
               </div>
             ) : countryOverlay ? (
               <CountryOverlayPanel
@@ -564,6 +619,43 @@ export default function ProgrammeTypes() {
           }
         }}
       />
+
+      {/* Unsaved-changes guard dialog */}
+      {pendingSelectId && (
+        <div className="fixed inset-0 bg-foreground/30 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
+          <div className="bg-card rounded-2xl shadow-lg border border-border w-full max-w-sm mx-4 p-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-9 rounded-full bg-warning/10 flex items-center justify-center shrink-0">
+                <RotateCcw className="w-4 h-4 text-warning" />
+              </div>
+              <h3 className="text-sm font-semibold text-foreground">Unsaved Changes</h3>
+            </div>
+            <p className="text-[13px] text-muted-foreground mb-5">
+              You have unsaved changes on this type. Switching will discard them. Save first or discard?
+            </p>
+            <div className="flex items-center gap-2 justify-end">
+              <button
+                onClick={() => setPendingSelectId(null)}
+                className="px-3 py-2 rounded-lg text-sm font-medium text-muted-foreground hover:bg-secondary transition-colors"
+              >
+                Keep editing
+              </button>
+              <button
+                onClick={confirmDiscardAndSwitch}
+                className="px-3 py-2 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors"
+              >
+                Discard & switch
+              </button>
+              <button
+                onClick={async () => { await saveChanges(); if (kpwValid) { setSelectedId(pendingSelectId); setSelectedCountryId(null); setPendingSelectId(null); } }}
+                className="px-3 py-2 rounded-lg text-sm font-semibold bg-gradient-accent text-accent-foreground hover:opacity-90 transition-opacity"
+              >
+                Save & switch
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
