@@ -3,9 +3,9 @@ import {
   Briefcase, Users, Clock, CheckCircle2, Search,
   ShieldCheck, History, FolderOpen, ClipboardCheck,
   Plus, Eye, Pencil, Trash2, MoreHorizontal,
-  UserPlus, AlertTriangle, CheckSquare, XCircle,
+  UserPlus, CheckSquare, XCircle,
   Mail, Phone, Building2, Calendar, Filter,
-  ChevronRight,
+  Settings2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,7 @@ import { useStaffRoleAssignments, useAssignStaffRole, useRemoveStaffRole, L_AND_
 import { WelcomeBanner, KpiGrid } from "@/components/dashboard/DashboardShell";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/animations/MotionWrappers";
 import { format } from "date-fns";
+import StaffRoleCatalogManager from "@/components/onboarding/StaffRoleCatalogManager";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -138,8 +139,10 @@ export default function StaffOnboarding() {
   const [profileMode, setProfileMode]         = useState<"view" | "edit">("view");
   const [deletingStaff, setDeletingStaff]     = useState<StaffRegistration | null>(null);
   const [deleting, setDeleting]               = useState(false);
+  const [managingCatalog, setManagingCatalog] = useState(false);
 
-  const { user } = useAuth();
+  const { user, roles } = useAuth();
+  const isSuperOrSysAdmin = roles.some(r => ["super_admin", "systems_admin"].includes(r as string));
   const queryClient = useQueryClient();
   const { data: staffRegs, isLoading } = useStaffRegistrations();
   const { data: auditLog }             = useStaffAuditLog();
@@ -266,9 +269,16 @@ export default function StaffOnboarding() {
       <WelcomeBanner
         subtitle="Staff registration, document verification, approvals, and portal access — all in one place."
         actions={
-          <Button onClick={() => setShowForm(true)} className="gap-2 text-sm" size="sm">
-            <UserPlus className="w-4 h-4" /> Register Staff
-          </Button>
+          <div className="flex items-center gap-2">
+            {isSuperOrSysAdmin && (
+              <Button variant="outline" size="sm" className="gap-2 text-sm" onClick={() => setManagingCatalog(true)}>
+                <Settings2 className="w-4 h-4" /> Manage Roles
+              </Button>
+            )}
+            <Button onClick={() => setShowForm(true)} className="gap-2 text-sm" size="sm">
+              <UserPlus className="w-4 h-4" /> Register Staff
+            </Button>
+          </div>
         }
       />
 
@@ -703,6 +713,12 @@ export default function StaffOnboarding() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Role Catalog Manager */}
+      <StaffRoleCatalogManager
+        open={managingCatalog}
+        onOpenChange={setManagingCatalog}
+      />
 
       {/* Delete confirmation dialog */}
       <Dialog open={!!deletingStaff} onOpenChange={v => { if (!v) setDeletingStaff(null); }}>

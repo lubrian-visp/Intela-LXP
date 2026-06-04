@@ -10,19 +10,15 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { L_AND_D_ROLES, useBulkAssignStaffRoles } from "@/hooks/useStaffRoleAssignments";
+import { useBulkAssignStaffRoles } from "@/hooks/useStaffRoleAssignments";
+import { useStaffRoleCatalog, CATEGORY_LABELS } from "@/hooks/useStaffRoleCatalog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const steps = [
   { label: "Profile Details", step: 1 },
   { label: "Role & Department", step: 2 },
   { label: "Documents", step: 3 },
   { label: "Review & Submit", step: 4 },
-];
-
-const roleOptions = [
-  "Programme Manager", "Facilitator", "Assessor", "Moderator",
-  "Mentor", "Operations", "Systems Admin", "Talent Manager",
-  "Skills Development Facilitator", "Learning Material Developer", "Instructional Designer",
 ];
 
 interface FormData {
@@ -52,6 +48,7 @@ export default function StaffRegistrationForm({ onBack, onClose }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const { user } = useAuth();
   const bulkAssignRoles = useBulkAssignStaffRoles();
+  const { data: roleCatalog = [], isLoading: catalogLoading } = useStaffRoleCatalog(true);
 
   const update = (field: keyof FormData, value: string) => setForm(p => ({ ...p, [field]: value }));
   const toggleRole = (role: string) => setForm(p => ({
@@ -69,17 +66,10 @@ export default function StaffRegistrationForm({ onBack, onClose }: Props) {
     update("tempPassword", pwd);
   };
 
-  const roleToUserType: Record<string, string> = {
-    "Programme Manager":       "staff_programme_manager",
-    "Facilitator":             "staff_facilitator",
-    "Assessor":                "staff_assessor",
-    "Moderator":               "staff_moderator",
-    "Mentor":                  "staff_mentor",
-    "L&D Support Officer":     "staff_ld_support_officer",
-    "Operations":              "staff_operations",
-    "Systems Admin":           "staff_systems_admin",
-    "Talent Manager":          "staff_talent_manager",
-  };
+  // Build lookup from catalog (dynamic — no hardcoded map)
+  const roleToUserType = Object.fromEntries(
+    roleCatalog.map(r => [r.display_name, r.user_type_key])
+  );
 
   const handleSubmit = async () => {
     if (!form.fullName || !form.email || form.roles.length === 0 || !form.tempPassword) {
@@ -266,31 +256,68 @@ export default function StaffRegistrationForm({ onBack, onClose }: Props) {
 
           {step === 2 && (
             <div className="space-y-4 animate-fade-in">
-              <div><h3 className="text-sm font-semibold text-foreground">Role & Department</h3><p className="text-xs text-muted-foreground">Assign the role and department for this staff member.</p></div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label className="text-xs">Roles <span className="text-destructive">*</span></Label>
-                  <div className="grid grid-cols-2 gap-2 p-3 border border-border rounded-lg bg-secondary/20">
-                    {roleOptions.map(r => (
-                      <label key={r} className="flex items-center gap-2 cursor-pointer hover:bg-secondary/40 px-2 py-1.5 rounded-md transition-colors">
-                        <Checkbox checked={form.roles.includes(r)} onCheckedChange={() => toggleRole(r)} />
-                        <span className="text-xs text-foreground">{r}</span>
-                      </label>
-                    ))}
-                  </div>
-                  {form.roles.length > 0 && (
-                    <p className="text-[10px] text-muted-foreground">{form.roles.length} role(s) selected: {form.roles.join(", ")}</p>
-                  )}
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Department</Label>
-                  <Input placeholder="e.g. Academic, HR, IT" value={form.department} onChange={e => update("department", e.target.value)} />
-                </div>
+              <div>
+                <h3 className="text-sm font-semibold text-foreground">Role & Department</h3>
+                <p className="text-xs text-muted-foreground">Assign the role and department for this staff member.</p>
               </div>
+
+              {/* Dynamic role list grouped by category */}
+              <div className="space-y-1.5">
+                <Label className="text-xs">Roles <span className="text-destructive">*</span></Label>
+                {catalogLoading ? (
+                  <div className="space-y-2">
+                    {[1,2,3].map(i => <Skeleton key={i} className="h-8 rounded-lg" />)}
+                  </div>
+                ) : roleCatalog.length === 0 ? (
+                  <p className="text-xs text-muted-foreground px-2">No roles configured. Ask your administrator to add roles via Staff Onboarding settings.</p>
+                ) : (
+                  <div className="border border-border rounded-xl bg-secondary/10 divide-y divide-border/50">
+                    {Object.entries(CATEGORY_LABELS).map(([cat, catLabel]) => {
+                      const catRoles = roleCatalog.filter(r => r.category === cat);
+                      if (catRoles.length === 0) return null;
+                      return (
+                        <div key={cat} className="px-3 py-3">
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                            {catLabel}
+                          </p>
+                          <div className="grid grid-cols-2 gap-1">
+                            {catRoles.map(r => (
+                              <label key={r.id} className={cn(
+                                "flex items-center gap-2.5 cursor-pointer px-2.5 py-2 rounded-lg transition-colors text-xs",
+                                form.roles.includes(r.display_name)
+                                  ? "bg-primary/10 text-primary font-medium"
+                                  : "hover:bg-secondary/60 text-foreground"
+                              )}>
+                                <Checkbox
+                                  checked={form.roles.includes(r.display_name)}
+                                  onCheckedChange={() => toggleRole(r.display_name)}
+                                />
+                                {r.display_name}
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {form.roles.length > 0 && (
+                  <p className="text-[10px] text-muted-foreground">
+                    {form.roles.length} selected: <span className="font-medium text-foreground">{form.roles.join(", ")}</span>
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs">Department</Label>
+                <Input placeholder="e.g. Academic, HR, IT" value={form.department} onChange={e => update("department", e.target.value)} />
+              </div>
+
               <div className="space-y-1.5">
                 <Label className="text-xs">Notes</Label>
                 <Textarea placeholder="Any additional notes..." value={form.notes} onChange={e => update("notes", e.target.value)} className="text-xs h-20" />
               </div>
+
               <div className="flex items-start gap-2 p-3 rounded-lg bg-info/5 border border-info/10">
                 <Shield className="w-4 h-4 text-info shrink-0 mt-0.5" />
                 <p className="text-[10px] text-muted-foreground">

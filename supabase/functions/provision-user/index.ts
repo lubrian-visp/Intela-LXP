@@ -95,26 +95,29 @@ serve(async (req) => {
       userId = newUser.user?.id;
     }
 
-    // If user_type is provided, assign the default role
+    // If user_type is provided, resolve the app_role dynamically from the catalog
     if (user_type && userId) {
-      const roleMap: Record<string, string> = {
-        learner:                   "learner",
-        staff_programme_manager:   "programme_manager",
-        staff_facilitator:         "facilitator",
-        staff_assessor:            "assessor",
-        staff_moderator:           "moderator",
-        staff_mentor:              "mentor",
-        staff_ld_support_officer:  "ld_support_officer",
-        staff_operations:          "operations",
-        staff_systems_admin:       "systems_admin",
-        staff_talent_manager:      "talent_manager",
-      };
+      let appRole: string | null = null;
 
-      const role = roleMap[user_type];
-      if (role) {
-        // Upsert to avoid duplicate role errors
+      if (user_type === "learner") {
+        appRole = "learner";
+      } else {
+        // Look up in staff_role_catalog by user_type_key
+        const { data: catalogEntry } = await adminClient
+          .from("staff_role_catalog")
+          .select("app_role_key")
+          .eq("user_type_key", user_type)
+          .eq("is_active", true)
+          .single();
+
+        if (catalogEntry?.app_role_key) {
+          appRole = catalogEntry.app_role_key;
+        }
+      }
+
+      if (appRole) {
         await adminClient.from("user_roles").upsert(
-          { user_id: userId, role },
+          { user_id: userId, role: appRole },
           { onConflict: "user_id,role" }
         );
       }
