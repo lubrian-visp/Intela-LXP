@@ -6,7 +6,7 @@
  * Falls back to SMTP only if Resend is not configured.
  */
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import nodemailer from "https://esm.sh/nodemailer@6.9.7";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -47,43 +47,40 @@ function buildHtml(subject: string, body: string, fromName: string): string {
 </html>`;
 }
 
-// ── SMTP sender via denomailer ────────────────────────────────────────────────
+// ── SMTP sender via nodemailer ────────────────────────────────────────────────
 async function sendViaSMTP(
   recipients: string[],
   subject: string,
   html: string,
   cfg: Record<string, string>,
 ): Promise<{ email: string; status: "sent" | "failed"; error?: string }[]> {
-  const port     = parseInt(cfg.smtp_port || "465", 10);
-  const useTls   = cfg.smtp_use_ssl === "true" || port === 465;
+  const port     = parseInt(cfg.smtp_port || "587", 10);
+  const secure   = cfg.smtp_use_ssl === "true" || port === 465;
   const fromName = cfg.smtp_from_name || "Intela LXP";
   const replyTo  = cfg.smtp_reply_to  || cfg.smtp_username;
 
-  const results: { email: string; status: "sent" | "failed"; error?: string }[] = [];
+  const transporter = nodemailer.createTransport({
+    host:   cfg.smtp_host,
+    port,
+    secure,
+    auth: { user: cfg.smtp_username, pass: cfg.smtp_password },
+    tls:  { rejectUnauthorized: false },
+  });
 
+  const results: { email: string; status: "sent" | "failed"; error?: string }[] = [];
   for (const to of recipients) {
-    const client = new SMTPClient({
-      connection: {
-        hostname: cfg.smtp_host,
-        port,
-        tls: useTls,
-        auth: { username: cfg.smtp_username, password: cfg.smtp_password },
-      },
-    });
     try {
-      await client.send({
-        from:    `${fromName} <${cfg.smtp_username}>`,
-        to,
+      await transporter.sendMail({
+        from:    `"${fromName}" <${cfg.smtp_username}>`,
         replyTo,
+        to,
         subject,
         html,
-        content: html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim(),
+        text: html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim(),
       });
       results.push({ email: to, status: "sent" });
     } catch (e: any) {
       results.push({ email: to, status: "failed", error: e.message });
-    } finally {
-      await client.close().catch(() => {});
     }
   }
   return results;

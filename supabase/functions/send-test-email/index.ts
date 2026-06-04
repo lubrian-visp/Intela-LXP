@@ -1,54 +1,48 @@
 /**
  * send-test-email
- * Supports both SMTP (via denomailer — proper Deno TCP) and Resend (HTTP API).
+ * Supports SMTP (via nodemailer) and Resend (HTTP API).
  */
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import nodemailer from "https://esm.sh/nodemailer@6.9.7";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// ── SMTP via denomailer (proper Deno TCP client) ───────────────────────────
+// ── SMTP via nodemailer ───────────────────────────────────────────────────────
 async function sendViaSMTP(to: string, subject: string, html: string, config: any) {
-  const port     = parseInt(config.smtp_port || "465", 10);
-  const useTls   = config.smtp_use_ssl === "true" || port === 465;
-  const fromName = config.smtp_from_name || "Intela LXP";
-  const replyTo  = config.smtp_reply_to  || config.smtp_username;
+  const port   = parseInt(config.smtp_port || "587", 10);
+  const secure = config.smtp_use_ssl === "true" || port === 465;
 
-  const client = new SMTPClient({
-    connection: {
-      hostname: config.smtp_host,
-      port,
-      tls: useTls,
-      auth: {
-        username: config.smtp_username,
-        password: config.smtp_password,
-      },
+  const transporter = nodemailer.createTransport({
+    host:   config.smtp_host,
+    port,
+    secure,
+    auth: {
+      user: config.smtp_username,
+      pass: config.smtp_password,
     },
+    tls: { rejectUnauthorized: false }, // allow self-signed certs on custom domains
   });
 
-  try {
-    await client.send({
-      from:    `${fromName} <${config.smtp_username}>`,
-      to,
-      replyTo: replyTo,
-      subject,
-      html,
-      content: html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim(),
-    });
-    return { success: true, message: "SMTP test email sent successfully" };
-  } finally {
-    await client.close();
-  }
+  const info = await transporter.sendMail({
+    from:    `"${config.smtp_from_name || "Intela LXP"}" <${config.smtp_username}>`,
+    replyTo: config.smtp_reply_to || config.smtp_username,
+    to,
+    subject,
+    html,
+    text: html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim(),
+  });
+
+  return { success: true, message: "SMTP test email sent successfully", messageId: info.messageId };
 }
 
-// ── Resend HTTP API ────────────────────────────────────────────────────────
+// ── Resend HTTP API ───────────────────────────────────────────────────────────
 async function sendViaResend(to: string, subject: string, html: string, config: any) {
   const fromEmail = config.resend_from_email || "onboarding@resend.dev";
   const fromName  = config.resend_from_name  || "Intela LXP";
 
-  const response = await fetch("https://api.resend.com/emails", {
+  const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       Authorization:  `Bearer ${config.resend_api_key}`,
@@ -62,38 +56,30 @@ async function sendViaResend(to: string, subject: string, html: string, config: 
     }),
   });
 
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error(`Resend API error: ${err}`);
-  }
-
-  const result = await response.json();
+  if (!res.ok) throw new Error(`Resend API error: ${await res.text()}`);
+  const result = await res.json();
   return { success: true, message: "Resend test email sent successfully", id: result.id };
 }
 
-// ── HTML template ─────────────────────────────────────────────────────────
+// ── HTML template ─────────────────────────────────────────────────────────────
 function buildHtml(provider: string): string {
   return `
     <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
-      <div style="background:#1e293b;padding:20px 24px;border-radius:12px 12px 0 0;display:flex;align-items:center;gap:12px;">
-        <div style="width:32px;height:32px;background:#f97316;border-radius:8px;display:flex;align-items:center;justify-content:center;">
-          <span style="color:#fff;font-weight:bold;font-size:14px;">I</span>
-        </div>
-        <span style="color:#f8fafc;font-size:16px;font-weight:700;">Intela LXP</span>
+      <div style="background:#1e293b;padding:20px 24px;border-radius:12px 12px 0 0;">
+        <span style="color:#f8fafc;font-size:18px;font-weight:700;">✅ Intela LXP — Email Test</span>
       </div>
-      <div style="background:#fff;padding:24px;border:1px solid #e2e8f0;border-top:none;">
-        <h2 style="color:#0f172a;margin:0 0 12px;font-size:18px;">✅ Email Configuration Working</h2>
+      <div style="background:#fff;padding:24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;">
+        <h2 style="color:#0f172a;margin:0 0 12px;font-size:18px;">Email Configuration Working</h2>
         <p style="color:#475569;font-size:14px;line-height:1.6;margin:0 0 8px;">
           This test email was sent via <strong>${provider === "smtp" ? "SMTP" : "Resend"}</strong>.
           Your email configuration is working correctly.
         </p>
         <p style="color:#94a3b8;font-size:12px;margin:16px 0 0;">Sent from Intela Platform Settings</p>
       </div>
-    </div>
-  `;
+    </div>`;
 }
 
-// ── Handler ───────────────────────────────────────────────────────────────
+// ── Handler ───────────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -102,12 +88,10 @@ Deno.serve(async (req) => {
   try {
     const { provider, to, smtpConfig, resendConfig } = await req.json();
 
-    if (!to) {
-      return new Response(
-        JSON.stringify({ error: "Recipient email is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
-    }
+    if (!to) return new Response(
+      JSON.stringify({ error: "Recipient email is required" }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
 
     const subject = "Intela LXP — Email Configuration Test";
     const html    = buildHtml(provider);

@@ -1,46 +1,38 @@
 import { corsHeaders } from "../_shared/cors.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { SMTPClient } from "https://deno.land/x/denomailer@1.6.0/mod.ts";
+import nodemailer from "https://esm.sh/nodemailer@6.9.7";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-/* ── SMTP via denomailer (proper Deno SMTP client) ── */
+/* ── SMTP via nodemailer ── */
 async function sendViaSMTP(
   to: string,
   subject: string,
   html: string,
   config: Record<string, string>,
 ) {
-  const port     = parseInt(config.smtp_port || "465", 10);
-  const useTls   = config.smtp_use_ssl === "true" || port === 465;
+  const port   = parseInt(config.smtp_port || "587", 10);
+  const secure = config.smtp_use_ssl === "true" || port === 465;
   const fromName = config.smtp_from_name || "Intela";
   const replyTo  = config.smtp_reply_to  || config.smtp_username;
 
-  const client = new SMTPClient({
-    connection: {
-      hostname: config.smtp_host,
-      port,
-      tls: useTls,
-      auth: {
-        username: config.smtp_username,
-        password: config.smtp_password,
-      },
-    },
+  const transporter = nodemailer.createTransport({
+    host:   config.smtp_host,
+    port,
+    secure,
+    auth: { user: config.smtp_username, pass: config.smtp_password },
+    tls:  { rejectUnauthorized: false },
   });
 
-  try {
-    await client.send({
-      from:    `${fromName} <${config.smtp_username}>`,
-      to,
-      replyTo,
-      subject,
-      html,
-      content: html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim(),
-    });
-  } finally {
-    await client.close();
-  }
+  await transporter.sendMail({
+    from:    `"${fromName}" <${config.smtp_username}>`,
+    replyTo,
+    to,
+    subject,
+    html,
+    text: html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim(),
+  });
 }
 
 /* ── Resend HTTP API sender ── */

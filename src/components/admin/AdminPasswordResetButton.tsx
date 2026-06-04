@@ -27,15 +27,21 @@ export default function AdminPasswordResetButton({
 
     setIsSending(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+      // Use our branded edge function instead of Supabase's default email
+      const { data, error } = await supabase.functions.invoke("send-password-reset", {
+        body: {
+          email,
+          userName: userName || null,
+          redirectTo: `${window.location.origin}/reset-password`,
+        },
       });
 
       if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast.success(
         `Password reset email sent to ${userName || email}.`,
-        { description: "They will receive a secure link to set a new password." }
+        { description: "They will receive a branded Intela email with a secure reset link." }
       );
     } catch (err: any) {
       toast.error("Failed to send password reset email", {
