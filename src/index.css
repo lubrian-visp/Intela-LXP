@@ -1,0 +1,274 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Roboto+Slab:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@layer base {
+  :root {
+    --background: 210 20% 97%;
+    --foreground: 209 69% 18%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 209 69% 18%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 209 69% 18%;
+
+    --primary: 209 69% 18%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 210 25% 94%;
+    --secondary-foreground: 209 69% 18%;
+
+    --muted: 210 18% 95%;
+    --muted-foreground: 209 20% 46%;
+
+    --accent: 27 90% 52%;
+    --accent-foreground: 0 0% 100%;
+    /* WCAG AA-compliant orange for use as text on light backgrounds (≥4.5:1 contrast). */
+    --accent-text: 22 95% 32%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 210 16% 89%;
+    --input: 210 16% 89%;
+    --ring: 209 69% 18%;
+
+    --radius: 0rem;
+
+    --sidebar-background: 209 69% 14%;
+    --sidebar-foreground: 210 20% 80%;
+    --sidebar-primary: 27 90% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 209 50% 22%;
+    --sidebar-accent-foreground: 210 20% 90%;
+    --sidebar-border: 209 40% 22%;
+    --sidebar-ring: 27 90% 52%;
+
+    --success: 152 60% 40%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 210 80% 55%;
+    --info-foreground: 0 0% 100%;
+
+    --chart-1: 209 69% 18%;
+    --chart-2: 27 90% 52%;
+    --chart-3: 152 60% 40%;
+    --chart-4: 210 80% 55%;
+    --chart-5: 280 60% 55%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(209 69% 18%), hsl(209 69% 28%));
+    --gradient-accent: linear-gradient(135deg, hsl(27 90% 52%), hsl(20 90% 55%));
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%), hsl(210 20% 97%));
+    --gradient-info: linear-gradient(135deg, hsl(210 80% 55%), hsl(200 80% 60%));
+    --gradient-success: linear-gradient(135deg, hsl(152 60% 40%), hsl(160 55% 45%));
+    --gradient-warning: linear-gradient(135deg, hsl(38 92% 50%), hsl(27 90% 52%));
+    --shadow-sm: 0 1px 2px 0 hsl(209 69% 18% / 0.04);
+    --shadow-md: 0 2px 4px -1px hsl(209 69% 18% / 0.06), 0 1px 2px -1px hsl(209 69% 18% / 0.04);
+    --shadow-lg: 0 6px 16px -3px hsl(209 69% 18% / 0.08), 0 3px 6px -4px hsl(209 69% 18% / 0.04);
+    --shadow-glow: 0 0 15px hsl(27 90% 52% / 0.12);
+  }
+
+  .dark {
+    --background: 209 50% 6%;
+    --foreground: 0 0% 98%;
+    --card: 209 50% 9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 209 50% 9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 27 90% 52%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 209 30% 16%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 209 30% 16%;
+    --muted-foreground: 210 9% 55%;
+    --accent: 27 90% 52%;
+    --accent-foreground: 0 0% 100%;
+    /* In dark mode the bright orange already meets AA on dark surfaces. */
+    --accent-text: 27 95% 62%;
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 209 30% 18%;
+    --input: 209 30% 18%;
+    --ring: 27 90% 52%;
+
+    --sidebar-background: 209 50% 8%;
+    --sidebar-foreground: 210 15% 70%;
+    --sidebar-primary: 27 90% 52%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 209 40% 16%;
+    --sidebar-accent-foreground: 210 15% 85%;
+    --sidebar-border: 209 30% 14%;
+    --sidebar-ring: 27 90% 52%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'DM Sans', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Space Grotesk', system-ui, sans-serif;
+  }
+
+  code, pre {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+@layer utilities {
+  .text-gradient-primary {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .text-gradient-accent {
+    background: var(--gradient-accent);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .bg-gradient-primary {
+    background: var(--gradient-primary);
+  }
+
+  .bg-gradient-accent {
+    background: var(--gradient-accent);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-md);
+  }
+
+  .shadow-card-hover {
+    box-shadow: var(--shadow-lg);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out;
+  }
+
+  .animate-slide-in-left {
+    animation: slideInLeft 0.3s ease-out;
+  }
+
+  .input-field {
+    @apply w-full px-3 py-2 text-sm bg-card rounded-lg border border-border/50 text-foreground placeholder:text-muted-foreground/60 focus:ring-2 focus:ring-accent focus:outline-none transition-colors;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* TipTap Editor Styles */
+.tiptap {
+  outline: none;
+}
+
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: hsl(var(--muted-foreground));
+  opacity: 0.5;
+  pointer-events: none;
+  height: 0;
+}
+
+.tiptap table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.tiptap th,
+.tiptap td {
+  border: 1px solid hsl(var(--border));
+  padding: 0.5rem;
+  min-width: 80px;
+}
+
+.tiptap th {
+  background: hsl(var(--muted));
+  font-weight: 600;
+}
+
+.tiptap img {
+  max-width: 100%;
+  border-radius: 0.5rem;
+}
+
+.tiptap iframe {
+  border-radius: 0.5rem;
+  max-width: 100%;
+}
+
+.tiptap blockquote {
+  border-left: 3px solid hsl(var(--primary) / 0.3);
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: hsl(var(--muted-foreground));
+}
+
+.tiptap pre {
+  background: hsl(var(--muted));
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow-x: auto;
+}
+
+.tiptap pre code {
+  background: none;
+  padding: 0;
+  font-size: 0.875rem;
+}
+
+.tiptap hr {
+  border-color: hsl(var(--border));
+  margin: 1.5rem 0;
+}
+
+.tiptap ul {
+  list-style-type: disc;
+  padding-left: 1.5rem;
+}
+
+.tiptap ol {
+  list-style-type: decimal;
+  padding-left: 1.5rem;
+}
+
+.tiptap li {
+  margin: 0.25rem 0;
+}

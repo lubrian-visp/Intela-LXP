@@ -1,0 +1,1 @@
+ALTER TABLE public.programmes ADD COLUMN IF NOT EXISTS ai_content_enabled boolean NOT NULL DEFAULT true;
