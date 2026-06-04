@@ -1,19 +1,22 @@
 import { useState, useMemo } from "react";
 import {
-  Users, Search, Filter, History, AlertTriangle,
-  CheckCircle2, Settings2, Layers, MoreHorizontal,
+  Users, Search, History, AlertTriangle,
+  CheckCircle2, Settings2, MoreHorizontal,
+  Plus, XCircle, ClipboardList,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { FadeIn, StaggerContainer, StaggerItem } from "@/components/animations/MotionWrappers";
+import { FadeIn } from "@/components/animations/MotionWrappers";
 import { WelcomeBanner, KpiGrid } from "@/components/dashboard/DashboardShell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { format } from "date-fns";
+import { format, isPast, parseISO } from "date-fns";
 import {
   useLdPoolMembers, useLdPoolRoles, useUpdateLdPoolMember, useLdPoolAuditLog,
-  LdPoolMember,
+  useLdAllocations, LdPoolMember, LdAllocation,
 } from "@/hooks/useLdPool";
+import LdAllocateDialog from "@/components/ld-pool/LdAllocateDialog";
+import LdRevokeDialog   from "@/components/ld-pool/LdRevokeDialog";
 import { useAuth } from "@/hooks/useAuth";
 
 // ── Role colour map ────────────────────────────────────────────────────────────
@@ -64,7 +67,13 @@ function WorkloadBar({ count, max }: { count: number; max: number }) {
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
-type Tab = "pool" | "audit";
+const STATUS_CONFIG = {
+  active:    { label: "Active",    color: "bg-green-500/10 text-green-600 border-green-500/20" },
+  completed: { label: "Completed", color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+  revoked:   { label: "Revoked",   color: "bg-rose-500/10 text-rose-600 border-rose-500/20" },
+};
+
+type Tab = "pool" | "allocations" | "audit";
 
 export default function LdPractitionerPool() {
   const { roles } = useAuth();
@@ -73,11 +82,15 @@ export default function LdPractitionerPool() {
   const [tab, setTab]               = useState<Tab>("pool");
   const [search, setSearch]         = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [allocFilter, setAllocFilter] = useState("all");
+  const [allocatingMember, setAllocatingMember] = useState<LdPoolMember | null>(null);
+  const [revokingAlloc, setRevokingAlloc]       = useState<LdAllocation | null>(null);
 
-  const { data: poolRoles = [] }        = useLdPoolRoles();
-  const { data: members = [], isLoading } = useLdPoolMembers();
-  const { data: auditLog = [] }         = useLdPoolAuditLog();
-  const updateMember                    = useUpdateLdPoolMember();
+  const { data: poolRoles = [] }           = useLdPoolRoles();
+  const { data: members = [], isLoading }  = useLdPoolMembers();
+  const { data: allocations = [] }         = useLdAllocations({ status: allocFilter !== "all" ? allocFilter : undefined });
+  const { data: auditLog = [] }            = useLdPoolAuditLog();
+  const updateMember                       = useUpdateLdPoolMember();
 
   const filtered = useMemo(() => members.filter(m => {
     const name = m.profile?.full_name?.toLowerCase() ?? "";
@@ -114,8 +127,9 @@ export default function LdPractitionerPool() {
           {/* Tabs */}
           <div className="flex items-center gap-1 px-4 pt-4 border-b border-border">
             {([
-              { key: "pool" as Tab,  label: "Practitioner Pool", icon: Users,   badge: members.filter(m => m.pool_status === "active").length },
-              { key: "audit" as Tab, label: "Audit Log",          icon: History },
+              { key: "pool"        as Tab, label: "Practitioner Pool", icon: Users,          badge: members.filter(m => m.pool_status === "active").length },
+              { key: "allocations" as Tab, label: "Allocations",       icon: ClipboardList,  badge: allocations.filter(a => a.status === "active").length },
+              { key: "audit"       as Tab, label: "Audit Log",         icon: History },
             ]).map(t => (
               <button key={t.key} onClick={() => setTab(t.key)}
                 className={cn("flex items-center gap-2 px-4 py-2.5 text-[13px] font-medium rounded-t-lg border-b-2 transition-colors",
@@ -206,6 +220,12 @@ export default function LdPractitionerPool() {
                                   {m.pool_status}
                                 </span>
 
+                                {canManage && m.pool_status === "active" && (
+                                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1.5 shrink-0"
+                                    onClick={() => setAllocatingMember(m)}>
+                                    <Plus className="w-3 h-3" /> Allocate
+                                  </Button>
+                                )}
                                 {canManage && (
                                   <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -237,6 +257,99 @@ export default function LdPractitionerPool() {
                       </div>
                     );
                   })
+                )}
+              </div>
+            )}
+
+            {/* ── Allocations Tab ── */}
+            {tab === "allocations" && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">Practitioner Allocations</h3>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{allocations.length} allocation record{allocations.length !== 1 ? "s" : ""}</p>
+                  </div>
+                  <select value={allocFilter} onChange={e => setAllocFilter(e.target.value)}
+                    className="text-xs px-2.5 py-1.5 rounded-lg border border-border bg-background text-foreground focus:outline-none">
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="completed">Completed</option>
+                    <option value="revoked">Revoked</option>
+                  </select>
+                </div>
+
+                {allocations.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <ClipboardList className="w-10 h-10 text-muted-foreground/20 mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground">No allocations yet.</p>
+                    <p className="text-[11px] text-muted-foreground/70 mt-1">
+                      Click <strong>Allocate</strong> on a pool member to create the first one.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto -mx-5">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-border bg-secondary/30">
+                          <th className="text-left px-5 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Practitioner</th>
+                          <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Scope</th>
+                          <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Duration</th>
+                          <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Allocated by</th>
+                          <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+                          <th className="text-center px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/40">
+                        {allocations.map(a => {
+                          const memberName    = (a.member as any)?.profile?.full_name ?? "—";
+                          const allocatorName = (a.allocator_profile as any)?.full_name ?? "—";
+                          const sc            = STATUS_CONFIG[a.status] ?? STATUS_CONFIG.active;
+                          const overdue       = a.status === "active" && isPast(parseISO(a.end_date));
+                          const canRevoke     = a.status === "active" && canManage;
+
+                          return (
+                            <tr key={a.id} className={cn("hover:bg-secondary/20 transition-colors", overdue && "bg-rose-500/5")}>
+                              <td className="px-5 py-3">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-7 h-7 rounded-full bg-sky-500/10 text-sky-600 flex items-center justify-center text-[10px] font-bold shrink-0">
+                                    {memberName.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2)}
+                                  </div>
+                                  <div>
+                                    <p className="text-[13px] font-medium text-foreground">{memberName}</p>
+                                    <p className="text-[10px] text-muted-foreground capitalize">{a.role_key}</p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-4 py-3">
+                                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-secondary text-foreground capitalize mr-1.5">{a.scope_type}</span>
+                                <span className="text-sm text-foreground">{a.scope_label}</span>
+                              </td>
+                              <td className="px-4 py-3 text-[11px] text-muted-foreground whitespace-nowrap">
+                                {format(parseISO(a.start_date), "d MMM yy")} →{" "}
+                                <span className={overdue ? "text-rose-500 font-medium" : ""}>
+                                  {format(parseISO(a.end_date), "d MMM yy")}
+                                </span>
+                                {overdue && <span className="ml-1 text-[9px] font-bold text-rose-500 uppercase">Overdue</span>}
+                              </td>
+                              <td className="px-4 py-3 text-[11px] text-muted-foreground">{allocatorName}</td>
+                              <td className="px-4 py-3">
+                                <span className={cn("text-[10px] font-medium px-2 py-0.5 rounded-full border", sc.color)}>{sc.label}</span>
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                {canRevoke ? (
+                                  <Button size="sm" variant="outline"
+                                    className="h-7 text-xs text-rose-600 border-rose-500/30 hover:bg-rose-500/10 gap-1"
+                                    onClick={() => setRevokingAlloc(a)}>
+                                    <XCircle className="w-3 h-3" /> Revoke
+                                  </Button>
+                                ) : <span className="text-[10px] text-muted-foreground">—</span>}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 )}
               </div>
             )}
@@ -277,6 +390,22 @@ export default function LdPractitionerPool() {
           </div>
         </div>
       </FadeIn>
+
+      {/* Dialogs */}
+      {allocatingMember && (
+        <LdAllocateDialog
+          member={allocatingMember}
+          open={!!allocatingMember}
+          onOpenChange={v => { if (!v) setAllocatingMember(null); }}
+        />
+      )}
+      {revokingAlloc && (
+        <LdRevokeDialog
+          allocation={revokingAlloc}
+          open={!!revokingAlloc}
+          onOpenChange={v => { if (!v) setRevokingAlloc(null); }}
+        />
+      )}
     </div>
   );
 }

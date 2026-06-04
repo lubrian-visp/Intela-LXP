@@ -188,6 +188,141 @@ export function useAssignSubmissionStaff() {
   });
 }
 
+// ── L&D Allocations ───────────────────────────────────────────────────────────
+
+export interface LdAllocation {
+  id: string;
+  pool_member_id: string;
+  allocated_user_id: string;
+  allocator_id: string;
+  role_key: string;
+  scope_type: "cohort" | "programme" | "session";
+  scope_id: string | null;
+  scope_label: string;
+  start_date: string;
+  end_date: string;
+  status: "active" | "completed" | "revoked";
+  revoked_by: string | null;
+  revoked_at: string | null;
+  revocation_reason: string | null;
+  notes: string | null;
+  created_at: string;
+  // joined
+  allocated_profile?: { full_name: string | null };
+  allocator_profile?: { full_name: string | null };
+  member?: LdPoolMember;
+}
+
+export function useLdAllocations(filter?: { status?: string; allocatedUserId?: string }) {
+  return useQuery({
+    queryKey: ["ld_allocations", filter],
+    queryFn: async () => {
+      let q = db
+        .from("ld_allocations")
+        .select("*, member:ld_pool_members(id, role_key, user_id, display_role)")
+        .order("created_at", { ascending: false });
+      if (filter?.status && filter.status !== "all") q = q.eq("status", filter.status);
+      if (filter?.allocatedUserId) q = q.eq("allocated_user_id", filter.allocatedUserId);
+      const { data, error } = await q;
+      if (error) throw error;
+      if (!data?.length) return [] as LdAllocation[];
+
+      const allUserIds = new Set<string>();
+      (data as any[]).forEach((a: any) => {
+        if (a.allocated_user_id) allUserIds.add(a.allocated_user_id);
+        if (a.allocator_id)      allUserIds.add(a.allocator_id);
+        if (a.member?.user_id)   allUserIds.add(a.member.user_id);
+      });
+
+      const { data: profiles } = await supabase
+        .from("profiles").select("user_id, full_name")
+        .in("user_id", [...allUserIds]);
+      const profileMap = Object.fromEntries((profiles ?? []).map((p: any) => [p.user_id, p]));
+
+      return (data as any[]).map((a: any) => ({
+        ...a,
+        allocator_profile:  profileMap[a.allocator_id]      ?? { full_name: null },
+        allocated_profile:  profileMap[a.allocated_user_id] ?? { full_name: null },
+        member: a.member ? {
+          ...a.member,
+          profile: profileMap[a.member.user_id] ?? { full_name: null },
+        } : null,
+      })) as LdAllocation[];
+    },
+  });
+}
+
+export function useCreateLdAllocation() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async (input: {
+      pool_member_id: string;
+      allocated_user_id: string;
+      role_key: string;
+      scope_type: "cohort" | "programme" | "session";
+      scope_id?: string;
+      scope_label: string;
+      start_date: string;
+      end_date: string;
+      notes?: string;
+    }) => {
+      const { data: alloc, error } = await db
+        .from("ld_allocations")
+        .insert({ ...input, allocator_id: user?.id, status: "active" })
+        .select().single();
+      if (error) throw error;
+
+      // Also create/update cohort_staff_assignments if scope is cohort
+      if (input.scope_type === "cohort" && input.scope_id) {
+        await db.from("cohort_staff_assignments").upsert(
+          { cohort_id: input.scope_id, user_id: input.allocated_user_id,
+            role: input.role_key, assigned_by: user?.id },
+          { onConflict: "cohort_id,user_id,role" }
+        );
+      }
+
+      await supabase.from("onboarding_audit_log").insert({
+        entity_type: "ld_pool", entity_id: alloc.id,
+        action: "ld_allocation_created", performed_by: user?.id,
+        details: { scope_type: input.scope_type, scope_label: input.scope_label,
+                   role_key: input.role_key },
+      });
+      return alloc;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ld_allocations"] });
+      qc.invalidateQueries({ queryKey: ["ld_pool_members"] });
+      qc.invalidateQueries({ queryKey: ["cohort_staff_assignments"] });
+      toast({ title: "Practitioner allocated successfully" });
+    },
+    onError: (e: any) => toast({ title: "Allocation failed", description: e.message, variant: "destructive" }),
+  });
+}
+
+export function useRevokeLdAllocation() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const { error } = await db.from("ld_allocations").update({
+        status: "revoked", revoked_by: user?.id,
+        revoked_at: new Date().toISOString(), revocation_reason: reason,
+      }).eq("id", id);
+      if (error) throw error;
+      await supabase.from("onboarding_audit_log").insert({
+        entity_type: "ld_pool", entity_id: id,
+        action: "ld_allocation_revoked", performed_by: user?.id, details: { reason },
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ld_allocations"] });
+      toast({ title: "Allocation revoked" });
+    },
+    onError: (e: any) => toast({ title: "Revoke failed", description: e.message, variant: "destructive" }),
+  });
+}
+
 // ── Audit log ─────────────────────────────────────────────────────────────────
 
 export function useLdPoolAuditLog() {
