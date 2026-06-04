@@ -1,0 +1,191 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/use-toast";
+
+const db = supabase as any;
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+export interface LdPoolRole {
+  id: string;
+  role_key: string;
+  display_name: string;
+  color_class: string | null;
+  is_active: boolean;
+  sort_order: number;
+}
+
+export interface LdPoolMember {
+  id: string;
+  staff_registration_id: string | null;
+  user_id: string;
+  role_key: string;
+  display_role: string;
+  pool_status: "active" | "suspended" | "removed";
+  specialisation: string | null;
+  max_cohorts: number;
+  added_at: string;
+  notes: string | null;
+  // joined
+  profile?: { full_name: string | null; avatar_url: string | null; job_title: string | null };
+  // computed
+  active_cohort_count?: number;
+}
+
+// ── Roles ─────────────────────────────────────────────────────────────────────
+
+export function useLdPoolRoles() {
+  return useQuery({
+    queryKey: ["ld_pool_roles"],
+    queryFn: async () => {
+      const { data, error } = await db.from("ld_pool_roles").select("*").eq("is_active", true).order("sort_order");
+      if (error) throw error;
+      return data as LdPoolRole[];
+    },
+    staleTime: 60_000,
+  });
+}
+
+// ── Pool members ──────────────────────────────────────────────────────────────
+
+export function useLdPoolMembers(roleFilter?: string) {
+  return useQuery({
+    queryKey: ["ld_pool_members", roleFilter],
+    queryFn: async () => {
+      let q = db
+        .from("ld_pool_members")
+        .select(`
+          *,
+          profile:profiles!ld_pool_members_user_id_fkey(full_name, avatar_url, job_title)
+        `)
+        .order("display_role")
+        .order("added_at", { ascending: false });
+      if (roleFilter && roleFilter !== "all") q = q.eq("role_key", roleFilter);
+      const { data, error } = await q;
+      if (error) throw error;
+
+      // Enrich with active cohort count
+      const userIds = (data ?? []).map((m: any) => m.user_id);
+      let cohortCounts: Record<string, number> = {};
+      if (userIds.length > 0) {
+        const { data: assignments } = await db
+          .from("cohort_staff_assignments")
+          .select("user_id, cohort_id")
+          .in("user_id", userIds);
+        (assignments ?? []).forEach((a: any) => {
+          cohortCounts[a.user_id] = (cohortCounts[a.user_id] ?? 0) + 1;
+        });
+      }
+
+      return (data ?? []).map((m: any) => ({
+        ...m,
+        active_cohort_count: cohortCounts[m.user_id] ?? 0,
+      })) as LdPoolMember[];
+    },
+  });
+}
+
+/** Pool members filtered to a specific role — used by AssignStaffModal */
+export function useLdPoolMembersByRole(role: string, enabled = true) {
+  return useQuery({
+    queryKey: ["ld_pool_members_by_role", role],
+    enabled: enabled && !!role,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("ld_pool_members")
+        .select(`*, profile:profiles!ld_pool_members_user_id_fkey(full_name, avatar_url)`)
+        .eq("role_key", role)
+        .eq("pool_status", "active")
+        .order("display_role");
+      if (error) throw error;
+
+      const userIds = (data ?? []).map((m: any) => m.user_id);
+      let cohortCounts: Record<string, number> = {};
+      if (userIds.length > 0) {
+        const { data: assignments } = await db
+          .from("cohort_staff_assignments")
+          .select("user_id")
+          .in("user_id", userIds);
+        (assignments ?? []).forEach((a: any) => {
+          cohortCounts[a.user_id] = (cohortCounts[a.user_id] ?? 0) + 1;
+        });
+      }
+
+      return (data ?? []).map((m: any) => ({
+        ...m,
+        active_cohort_count: cohortCounts[m.user_id] ?? 0,
+      })) as LdPoolMember[];
+    },
+    staleTime: 30_000,
+  });
+}
+
+export function useUpdateLdPoolMember() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async ({ id, ...rest }: Partial<LdPoolMember> & { id: string }) => {
+      const { error } = await db.from("ld_pool_members").update(rest).eq("id", id);
+      if (error) throw error;
+      await supabase.from("onboarding_audit_log").insert({
+        entity_type: "ld_pool", entity_id: id,
+        action: `member_${(rest as any).pool_status ?? "updated"}`,
+        performed_by: user?.id, details: rest,
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ld_pool_members"] });
+      toast({ title: "Pool member updated" });
+    },
+    onError: (e: any) => toast({ title: "Failed", description: e.message, variant: "destructive" }),
+  });
+}
+
+// ── Submission assessor / moderator assignment ────────────────────────────────
+
+export function useAssignSubmissionStaff() {
+  const qc = useQueryClient();
+  const { user } = useAuth();
+  return useMutation({
+    mutationFn: async ({
+      submissionId, staffUserId, role,
+    }: { submissionId: string; staffUserId: string; role: "assessor" | "moderator" }) => {
+      const field = role === "assessor" ? "assessor_id" : "moderator_id";
+      const { error } = await db
+        .from("assessment_submissions")
+        .update({ [field]: staffUserId })
+        .eq("id", submissionId);
+      if (error) throw error;
+      await supabase.from("onboarding_audit_log").insert({
+        entity_type: "ld_pool", entity_id: submissionId,
+        action: `${role}_assigned`, performed_by: user?.id,
+        details: { staff_user_id: staffUserId, role },
+      });
+    },
+    onSuccess: (_, { role }) => {
+      qc.invalidateQueries({ queryKey: ["assessment_submissions"] });
+      qc.invalidateQueries({ queryKey: ["ld_pool_members"] });
+      toast({ title: `${role === "assessor" ? "Assessor" : "Moderator"} assigned` });
+    },
+    onError: (e: any) => toast({ title: "Assignment failed", description: e.message, variant: "destructive" }),
+  });
+}
+
+// ── Audit log ─────────────────────────────────────────────────────────────────
+
+export function useLdPoolAuditLog() {
+  return useQuery({
+    queryKey: ["ld_pool_audit"],
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("onboarding_audit_log")
+        .select("*")
+        .eq("entity_type", "ld_pool")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      return data;
+    },
+  });
+}

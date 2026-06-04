@@ -155,7 +155,8 @@ export const domainPortals: Record<DomainKey, DomainPortalConfig> = {
           { label: "User Directory",   icon: Users,     path: "/admin/users",       roles: ["super_admin"] },
           { label: "Roles & Permissions", icon: Shield, path: "/admin/roles",       roles: ["super_admin"] },
           { label: "Staff Onboarding", icon: Briefcase, path: "/staff/onboarding",  roles: ["super_admin"] },
-          { label: "Admin Staff Pool", icon: Users,     path: "/admin/staff-pool",  roles: ["super_admin"] },
+          { label: "Admin Staff Pool",      icon: Users,    path: "/admin/staff-pool", roles: ["super_admin"] },
+          { label: "L&D Practitioner Pool", icon: BookOpen, path: "/ld-pool",          roles: ["super_admin"] },
         ],
       },
       {
@@ -296,9 +297,10 @@ export const domainPortals: Record<DomainKey, DomainPortalConfig> = {
       {
         title: "Staff Management",
         items: [
-          { label: "Admin Staff Pool", icon: Users,      path: "/admin/staff-pool",  roles: ["operations"] },
-          { label: "Staff Onboarding", icon: Briefcase,  path: "/staff/onboarding",  roles: ["operations"] },
-          { label: "Staff Compliance", icon: ShieldCheck,path: "/sponsor/compliance",roles: ["operations"] },
+          { label: "Admin Staff Pool",      icon: Users,       path: "/admin/staff-pool", roles: ["operations"] },
+          { label: "L&D Practitioner Pool", icon: BookOpen,    path: "/ld-pool",          roles: ["operations"] },
+          { label: "Staff Onboarding",      icon: Briefcase,   path: "/staff/onboarding", roles: ["operations"] },
+          { label: "Staff Compliance",      icon: ShieldCheck, path: "/sponsor/compliance",roles: ["operations"] },
         ],
       },
 
@@ -363,7 +365,8 @@ export const domainPortals: Record<DomainKey, DomainPortalConfig> = {
       {
         title: "Staff Management",
         items: [
-          { label: "Admin Staff Pool", icon: Users, path: "/admin/staff-pool", roles: ["programme_manager"] },
+          { label: "Admin Staff Pool",      icon: Users,    path: "/admin/staff-pool", roles: ["programme_manager"] },
+          { label: "L&D Practitioner Pool", icon: BookOpen, path: "/ld-pool",          roles: ["programme_manager"] },
         ],
       },
 
@@ -773,6 +776,7 @@ const pathToDomain: Record<string, DomainKey> = {
   "/executive-dashboard": "technical",
   "/admin": "technical",
   "/admin/staff-pool":   "technical",
+  "/ld-pool":            "business",
   "/programme-types":   "business",
   "/systems-admin": "technical",
   // Business

@@ -51,7 +51,8 @@ const LdSupportDashboard   = lazy(() => import("@/pages/LdSupportDashboard"));
 const PortfolioOfEvidence = lazy(() => import("@/pages/PortfolioOfEvidence"));
 const LearnerOnboarding = lazy(() => import("@/pages/LearnerOnboarding"));
 const StaffOnboarding = lazy(() => import("@/pages/StaffOnboarding"));
-const AdminStaffPool  = lazy(() => import("@/pages/AdminStaffPool"));
+const AdminStaffPool       = lazy(() => import("@/pages/AdminStaffPool"));
+const LdPractitionerPool   = lazy(() => import("@/pages/LdPractitionerPool"));
 const TalentManagement = lazy(() => import("@/pages/TalentManagement"));
 const TalentManagerPortal = lazy(() => import("@/pages/TalentManagerPortal"));
 const SponsorPartner = lazy(() => import("@/pages/SponsorPartner"));
@@ -238,6 +239,7 @@ const App = () => (
                           <Route path="/credentials" element={<Credentials />} />
                           <Route path="/staff/onboarding" element={<StaffOnboarding />} />
                           <Route path="/admin/staff-pool" element={<AdminStaffPool />} />
+                          <Route path="/ld-pool"         element={<LdPractitionerPool />} />
                           <Route path="/facilitator" element={<FacilitatorDashboard />} />
                           <Route path="/ld-support"  element={<LdSupportDashboard />} />
                           <Route path="/programmes" element={<Programmes />} />
