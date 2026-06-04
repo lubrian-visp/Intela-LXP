@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect } from "react";
+import { useEffect, useId } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -58,13 +58,13 @@ export function useToggleFeatureFlag() {
 
 export function usePlatformSettings(category?: string) {
   const qc = useQueryClient();
+  const uid = useId();
 
-  // Realtime subscription — any INSERT/UPDATE/DELETE on platform_settings
-  // immediately invalidates the cache so all mounted consumers see the change
-  // without needing a page refresh.
+  // Each hook instance uses a unique channel name so that one component
+  // unmounting does not remove the shared channel and break other subscribers.
   useEffect(() => {
     const channel = supabase
-      .channel("platform_settings_changes")
+      .channel(`platform_settings_changes_${uid}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "platform_settings" },
@@ -75,7 +75,7 @@ export function usePlatformSettings(category?: string) {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [qc]);
+  }, [qc, uid]);
 
   return useQuery({
     queryKey: ["platform-settings", category],
@@ -86,6 +86,7 @@ export function usePlatformSettings(category?: string) {
       if (error) throw error;
       return data as PlatformSetting[];
     },
+    staleTime: 30_000,
   });
 }
 

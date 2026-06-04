@@ -1,11 +1,10 @@
 import { useState, useMemo } from "react";
 import {
   FileCheck, Clock, CheckCircle2, AlertTriangle, BarChart3,
-  ArrowUpRight, ArrowDownRight, Search, Calendar, Users,
-  ClipboardCheck, XCircle, Eye, ThumbsUp, ThumbsDown
+  Search, ClipboardCheck, Eye, ThumbsUp, ThumbsDown, BookOpen, TrendingUp
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { FadeIn, StaggerContainer, StaggerItem } from "@/components/animations/MotionWrappers";
+import { FadeIn } from "@/components/animations/MotionWrappers";
 import { useSubmissions, useUpdateSubmission, useRealtimeSync, useModerationItems } from "@/hooks/useCoreData";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,6 +12,8 @@ import { toast } from "sonner";
 import { ModerationFeedbackBanner } from "@/components/moderation/ModerationFeedbackBanner";
 import CalendarWidget from "@/components/calendar/CalendarWidget";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
+import { WelcomeBanner, KpiGrid, ActionButton } from "@/components/dashboard/DashboardShell";
+import { useNavigate } from "react-router-dom";
 
 type SubmissionStatus = "pending" | "in_review" | "graded" | "moderation" | "resubmit";
 
@@ -35,6 +36,7 @@ const statusStyles: Record<string, string> = {
 export default function AssessorPortal() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
+  const navigate = useNavigate();
 
   const { data: submissions, isLoading } = useSubmissions();
   const { data: moderationItems = [] } = useModerationItems();
@@ -63,19 +65,19 @@ export default function AssessorPortal() {
     });
   }, [submissions, search, filterStatus]);
 
-  const stats = useMemo(() => {
+  const kpiItems = useMemo(() => {
     const all = submissions ?? [];
     const pending = all.filter(s => s.status === "pending").length;
     const graded = all.filter(s => s.status === "graded").length;
     const passCount = all.filter(s => s.status === "graded" && s.score != null && (s as any).assessments?.pass_mark != null && s.score >= (s as any).assessments.pass_mark).length;
-    const gradedCount = all.filter(s => s.status === "graded").length;
+    const gradedCount = graded;
     const passRate = gradedCount > 0 ? Math.round((passCount / gradedCount) * 100) : 0;
     const rejectedMods = (moderationItems as any[]).filter(i => i.status === "rejected").length;
     return [
-      { label: "Pending Reviews", value: String(pending), change: `${all.length} total`, up: false, icon: Clock },
-      { label: "Graded", value: String(graded), change: "this period", up: true, icon: CheckCircle2 },
-      { label: "Mod. Rejections", value: String(rejectedMods), change: "needs attention", up: false, icon: AlertTriangle },
-      { label: "Pass Rate", value: `${passRate}%`, change: `${gradedCount} graded`, up: passRate > 50, icon: BarChart3 },
+      { label: "Pending Reviews", value: pending, sub: `${all.length} total`, trend: false, icon: Clock, iconBg: "bg-orange-500/10", iconColor: "text-orange-500" },
+      { label: "Graded", value: graded, sub: "this period", trend: true, icon: CheckCircle2, iconBg: "bg-green-500/10", iconColor: "text-green-500" },
+      { label: "Mod. Rejections", value: rejectedMods, sub: "needs attention", trend: rejectedMods === 0, icon: AlertTriangle, iconBg: rejectedMods > 0 ? "bg-rose-500/10" : "bg-green-500/10", iconColor: rejectedMods > 0 ? "text-rose-500" : "text-green-500" },
+      { label: "Pass Rate", value: `${passRate}%`, sub: `${gradedCount} graded`, trend: passRate > 50, icon: TrendingUp, iconBg: "bg-blue-500/10", iconColor: "text-blue-500" },
     ];
   }, [submissions, moderationItems]);
 
@@ -118,33 +120,16 @@ export default function AssessorPortal() {
 
   return (
     <div className="space-y-6">
-      <FadeIn>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Assessor Portal</h1>
-          <p className="text-sm text-muted-foreground mt-1">Review submissions, manage grading, and handle moderation requests.</p>
-        </div>
-      </FadeIn>
-
-      {/* Stats */}
-      <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map(s => (
-          <StaggerItem key={s.label}>
-            <div className="bg-card rounded-xl shadow-card border border-border/50 p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="p-2 rounded-lg bg-secondary">
-                  <s.icon className="w-4 h-4 text-muted-foreground" />
-                </div>
-                <span className={cn("text-[11px] font-medium flex items-center gap-0.5", s.up ? "text-success" : "text-destructive")}>
-                  {s.up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                  {s.change}
-                </span>
-              </div>
-              <p className="text-2xl font-bold text-foreground">{s.value}</p>
-              <p className="text-[11px] text-muted-foreground mt-1">{s.label}</p>
-            </div>
-          </StaggerItem>
-        ))}
-      </StaggerContainer>
+      <WelcomeBanner
+        subtitle="Review submissions, manage grading, and handle moderation requests."
+        actions={
+          <>
+            <ActionButton icon={BookOpen} label="Assessments" onClick={() => navigate("/assessments")} />
+            <ActionButton icon={ClipboardCheck} label="Grade Pending" onClick={() => navigate("/assessments")} primary />
+          </>
+        }
+      />
+      <KpiGrid items={kpiItems} />
 
       {/* Moderation Rejection Alerts */}
       {rejectedSubmissions.length > 0 && (

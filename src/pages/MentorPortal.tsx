@@ -1,15 +1,16 @@
 import { useState, useMemo } from "react";
 import {
-  Users, Target, TrendingUp,
-  ArrowUpRight, ArrowDownRight, Search, CheckCircle2,
-  Clock, AlertTriangle, Star, BookOpen
+  Users, TrendingUp, Search, CheckCircle2,
+  AlertTriangle, Star, MessageSquare, Calendar
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { FadeIn, StaggerContainer, StaggerItem } from "@/components/animations/MotionWrappers";
+import { FadeIn } from "@/components/animations/MotionWrappers";
 import { useEnrolments, useCohorts, useRealtimeSync } from "@/hooks/useCoreData";
 import { Skeleton } from "@/components/ui/skeleton";
 import CalendarWidget from "@/components/calendar/CalendarWidget";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
+import { WelcomeBanner, KpiGrid, ActionButton } from "@/components/dashboard/DashboardShell";
+import { useNavigate } from "react-router-dom";
 
 type MenteeStatus = "Active" | "At Risk" | "Excelling" | "Completed";
 
@@ -37,6 +38,7 @@ function getMenteeStatus(progress: number, status: string): MenteeStatus {
 export default function MentorPortal() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
+  const navigate = useNavigate();
   const { data: calendarEvents = [] } = useCalendarEvents();
 
   const { data: enrolments, isLoading: loadingEnr } = useEnrolments();
@@ -70,16 +72,16 @@ export default function MentorPortal() {
     });
   }, [mentees, search, filterStatus]);
 
-  const stats = useMemo(() => {
+  const kpiItems = useMemo(() => {
     const active = mentees.filter(m => m.status === "Active" || m.status === "Excelling").length;
     const atRisk = mentees.filter(m => m.status === "At Risk").length;
     const completed = mentees.filter(m => m.status === "Completed").length;
     const avgProgress = mentees.length > 0 ? Math.round(mentees.reduce((s, m) => s + m.progress, 0) / mentees.length) : 0;
     return [
-      { label: "Active Mentees", value: String(active), change: `${mentees.length} total`, up: true, icon: Users },
-      { label: "At Risk", value: String(atRisk), change: atRisk > 0 ? "needs attention" : "none", up: atRisk === 0, icon: AlertTriangle },
-      { label: "Completed", value: String(completed), change: "", up: true, icon: CheckCircle2 },
-      { label: "Avg Progress", value: `${avgProgress}%`, change: "", up: avgProgress > 50, icon: TrendingUp },
+      { label: "Active Mentees", value: active, sub: `${mentees.length} total`, trend: true, icon: Users, iconBg: "bg-blue-500/10", iconColor: "text-blue-500" },
+      { label: "At Risk", value: atRisk, sub: atRisk > 0 ? "needs attention" : "all on track", trend: atRisk === 0, icon: AlertTriangle, iconBg: atRisk > 0 ? "bg-rose-500/10" : "bg-green-500/10", iconColor: atRisk > 0 ? "text-rose-500" : "text-green-500" },
+      { label: "Completed", value: completed, sub: "this period", trend: true, icon: CheckCircle2, iconBg: "bg-green-500/10", iconColor: "text-green-500" },
+      { label: "Avg Progress", value: `${avgProgress}%`, sub: "across mentees", trend: avgProgress > 50, icon: TrendingUp, iconBg: "bg-purple-500/10", iconColor: "text-purple-500" },
     ];
   }, [mentees]);
 
@@ -95,30 +97,16 @@ export default function MentorPortal() {
 
   return (
     <div className="space-y-6">
-      <FadeIn>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Mentor Portal</h1>
-          <p className="text-sm text-muted-foreground mt-1">Guide your mentees, track goals, and manage sessions.</p>
-        </div>
-      </FadeIn>
-
-      <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map(s => (
-          <StaggerItem key={s.label}>
-            <div className="bg-card rounded-xl shadow-card border border-border/50 p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="p-2 rounded-lg bg-secondary"><s.icon className="w-4 h-4 text-muted-foreground" /></div>
-                <span className={cn("text-[11px] font-medium flex items-center gap-0.5", s.up ? "text-success" : "text-destructive")}>
-                  {s.up ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                  {s.change}
-                </span>
-              </div>
-              <p className="text-2xl font-bold text-foreground">{s.value}</p>
-              <p className="text-[11px] text-muted-foreground mt-1">{s.label}</p>
-            </div>
-          </StaggerItem>
-        ))}
-      </StaggerContainer>
+      <WelcomeBanner
+        subtitle="Guide your mentees, track goals, and manage sessions."
+        actions={
+          <>
+            <ActionButton icon={Calendar} label="Schedule Session" onClick={() => navigate("/sessions")} />
+            <ActionButton icon={MessageSquare} label="Discussions" onClick={() => navigate("/discussions")} primary />
+          </>
+        }
+      />
+      <KpiGrid items={kpiItems} />
 
       {/* Calendar + Mentees Table */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

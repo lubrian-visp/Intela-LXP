@@ -1,4 +1,4 @@
-import { GraduationCap, Users, BookOpen, Award, TrendingUp, Clock, FileCheck, Route } from "lucide-react";
+import { GraduationCap, Users, BookOpen, Award, TrendingUp, Settings, Shield, LayoutDashboard } from "lucide-react";
 import StatCard from "@/components/dashboard/StatCard";
 import ProgrammeCard, { ProgrammeCardData } from "@/components/dashboard/ProgrammeCard";
 import CohortTable from "@/components/dashboard/CohortTable";
@@ -8,8 +8,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useMemo } from "react";
 import CalendarWidget from "@/components/calendar/CalendarWidget";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
+import { WelcomeBanner, KpiGrid, ActionButton } from "@/components/dashboard/DashboardShell";
+import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { data: programmes, isLoading: loadingProg } = useProgrammes();
   const { data: cohorts, isLoading: loadingCoh } = useCohorts();
   const { data: enrolments, isLoading: loadingEnr } = useEnrolments();
@@ -39,6 +42,16 @@ export default function Dashboard() {
       { label: "Credentials Issued", value: totalCredentials, change: pendingCredentials > 0 ? `+${pendingCredentials} pending` : "All verified", changeType: "neutral" as const, icon: <Award className="w-5 h-5 text-accent" /> },
     ];
   }, [programmes, enrolments, credentials]);
+
+  const kpiItems = useMemo(() => stats.map(s => ({
+    label: s.label,
+    value: s.value,
+    sub: s.change,
+    trend: s.changeType !== "neutral",
+    icon: GraduationCap,
+    iconBg: "bg-primary/10",
+    iconColor: "text-primary",
+  })), [stats]);
 
   // Build programme cards from real data
   const programmeCards: ProgrammeCardData[] = useMemo(() => {
@@ -85,30 +98,16 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Welcome */}
-      <FadeIn>
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Welcome back, Admin</h1>
-            <p className="text-sm text-muted-foreground mt-1">Here's what's happening across your programmes today.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5" />
-              Live data
-            </span>
-          </div>
-        </div>
-      </FadeIn>
-
-      {/* Stats */}
-      <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((s) => (
-          <StaggerItem key={s.label}>
-            <StatCard {...s} />
-          </StaggerItem>
-        ))}
-      </StaggerContainer>
+      <WelcomeBanner
+        subtitle="Here's what's happening across your platform today."
+        actions={
+          <>
+            <ActionButton icon={Settings} label="Platform Settings" onClick={() => navigate("/admin/settings")} />
+            <ActionButton icon={Shield} label="User Directory" onClick={() => navigate("/admin/users")} primary />
+          </>
+        }
+      />
+      <KpiGrid items={kpiItems} />
 
       {/* Programmes + Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

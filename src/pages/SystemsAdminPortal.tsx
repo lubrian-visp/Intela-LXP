@@ -1,27 +1,30 @@
 import { useState } from "react";
-import { Server, Database, Shield, RefreshCw, Activity, Settings, AlertTriangle, CheckCircle2, Terminal, ChevronRight, ArrowUpRight, Globe, Lock, Users, BookOpen, ToggleLeft, Bell } from "lucide-react";
+import { Server, Database, Shield, RefreshCw, Activity, Settings, AlertTriangle, CheckCircle2, Terminal, ArrowUpRight, Users, BookOpen, ToggleLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { FadeIn, StaggerContainer, StaggerItem } from "@/components/animations/MotionWrappers";
+import { FadeIn } from "@/components/animations/MotionWrappers";
 import CalendarWidget from "@/components/calendar/CalendarWidget";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 import { usePlatformStats, useRecentAuditLogs, useServiceHealthCheck, useFeatureFlags } from "@/hooks/useSystemsAdminData";
 import { format } from "date-fns";
+import { WelcomeBanner, KpiGrid, ActionButton } from "@/components/dashboard/DashboardShell";
+import { useNavigate } from "react-router-dom";
 
 export default function SystemsAdminPortal() {
   const [activeTab, setActiveTab] = useState<"overview" | "services" | "logs" | "integrations">("overview");
+  const navigate = useNavigate();
   const { data: calendarEvents = [] } = useCalendarEvents();
   const { data: stats, isLoading: statsLoading } = usePlatformStats();
   const { data: auditLogs = [], isLoading: logsLoading } = useRecentAuditLogs();
   const { data: services = [], isLoading: servicesLoading } = useServiceHealthCheck();
   const { data: featureFlags = [] } = useFeatureFlags();
 
-  const statCards = [
-    { label: "Registered Users", value: stats?.totalUsers ?? 0, icon: Users, change: `${stats?.totalRoles ?? 0} role assignments` },
-    { label: "Active Programmes", value: stats?.totalProgrammes ?? 0, icon: BookOpen, change: `${stats?.totalEnrolments ?? 0} enrolments` },
-    { label: "Feature Flags", value: `${stats?.enabledFlags ?? 0}/${stats?.totalFlags ?? 0}`, icon: ToggleLeft, change: "enabled" },
-    { label: "Security Alerts", value: "0", icon: Shield, change: "Clear" },
+  const kpiItems = [
+    { label: "Registered Users", value: stats?.totalUsers ?? 0, sub: `${stats?.totalRoles ?? 0} role assignments`, trend: true, icon: Users, iconBg: "bg-blue-500/10", iconColor: "text-blue-500" },
+    { label: "Active Programmes", value: stats?.totalProgrammes ?? 0, sub: `${stats?.totalEnrolments ?? 0} enrolments`, trend: true, icon: BookOpen, iconBg: "bg-orange-500/10", iconColor: "text-orange-500" },
+    { label: "Feature Flags", value: `${stats?.enabledFlags ?? 0}/${stats?.totalFlags ?? 0}`, sub: "enabled", trend: true, icon: ToggleLeft, iconBg: "bg-purple-500/10", iconColor: "text-purple-500" },
+    { label: "Security Alerts", value: "0", sub: "all clear", trend: true, icon: Shield, iconBg: "bg-green-500/10", iconColor: "text-green-500" },
   ];
 
   const systemCards = [
@@ -47,35 +50,20 @@ export default function SystemsAdminPortal() {
 
   return (
     <div className="space-y-6 animate-slide-up">
-      <FadeIn>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Systems Administration</h1>
-          <p className="text-sm text-muted-foreground mt-1">Infrastructure management, platform configuration, and system monitoring.</p>
-        </div>
-      </FadeIn>
-
-      {/* Stats */}
-      <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map(s => (
-          <StaggerItem key={s.label}>
-            {statsLoading ? <Skeleton className="h-28 rounded-xl" /> : (
-              <div className="bg-card rounded-xl shadow-card border border-border/50 p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <s.icon className="w-4 h-4 text-primary" />
-                  </div>
-                  <span className="text-[11px] font-medium flex items-center gap-0.5 text-success">
-                    <ArrowUpRight className="w-3 h-3" />
-                    {s.change}
-                  </span>
-                </div>
-                <p className="text-2xl font-bold text-foreground">{s.value}</p>
-                <p className="text-[11px] text-muted-foreground mt-1">{s.label}</p>
-              </div>
-            )}
-          </StaggerItem>
-        ))}
-      </StaggerContainer>
+      <WelcomeBanner
+        subtitle="Infrastructure management, platform configuration, and system monitoring."
+        actions={
+          <>
+            <ActionButton icon={Terminal} label="Audit Logs" onClick={() => { setActiveTab("logs"); }} />
+            <ActionButton icon={Activity} label="Service Health" onClick={() => { setActiveTab("services"); }} primary />
+          </>
+        }
+      />
+      {statsLoading ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">{[1,2,3,4].map(i => <Skeleton key={i} className="h-28 rounded-xl" />)}</div>
+      ) : (
+        <KpiGrid items={kpiItems} />
+      )}
 
       {/* Tabs */}
       <div className="flex items-center gap-1 bg-secondary rounded-lg p-1 w-fit">

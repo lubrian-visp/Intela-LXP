@@ -1,6 +1,6 @@
 import {
-  Users, BookOpen, AlertTriangle, MessageSquare, Clock, ChevronRight,
-  CheckCircle2, TrendingUp, TrendingDown, Eye, FileCheck, BarChart3
+  Users, AlertTriangle, ChevronRight,
+  CheckCircle2, FileCheck, BarChart3
 } from "lucide-react";
 import CalendarWidget from "@/components/calendar/CalendarWidget";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
@@ -14,6 +14,8 @@ import { useCohorts, useEnrolments, useSubmissions, useRealtimeSync } from "@/ho
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { WelcomeBanner, KpiGrid, ActionButton } from "@/components/dashboard/DashboardShell";
+import { useNavigate } from "react-router-dom";
 
 const statusStyle = {
   on_track: { color: "text-success", bg: "bg-success/10", dot: "bg-success", label: "On Track" },
@@ -29,6 +31,7 @@ function getEnrolmentStatus(progress: number) {
 
 export default function FacilitatorDashboard() {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const { data: allCohorts, isLoading: cohortsLoading } = useCohorts();
   const { data: allEnrolments, isLoading: enrolmentsLoading } = useEnrolments();
   const { data: allSubmissions } = useSubmissions();
@@ -75,50 +78,26 @@ export default function FacilitatorDashboard() {
     return m;
   }, [profiles]);
 
+  const kpiItems = [
+    { label: "Active Cohorts", value: cohorts.length, sub: "assigned", trend: true, icon: Users, iconBg: "bg-blue-500/10", iconColor: "text-blue-500" },
+    { label: "Pending Grading", value: pendingSubmissions.length, sub: "submissions", trend: pendingSubmissions.length === 0, icon: FileCheck, iconBg: pendingSubmissions.length > 0 ? "bg-orange-500/10" : "bg-green-500/10", iconColor: pendingSubmissions.length > 0 ? "text-orange-500" : "text-green-500" },
+    { label: "At Risk Learners", value: totalAtRisk, sub: "< 25% progress", trend: totalAtRisk === 0, icon: AlertTriangle, iconBg: totalAtRisk > 0 ? "bg-rose-500/10" : "bg-green-500/10", iconColor: totalAtRisk > 0 ? "text-rose-500" : "text-green-500" },
+    { label: "Total Learners", value: totalLearners, sub: "across cohorts", trend: true, icon: Users, iconBg: "bg-purple-500/10", iconColor: "text-purple-500" },
+  ];
+
   const isLoading = cohortsLoading || enrolmentsLoading;
   return (
     <div className="space-y-6">
-      {/* Welcome Header */}
-      <FadeIn>
-        <div className="bg-gradient-primary rounded-2xl p-6 text-primary-foreground">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold">Facilitator Dashboard</h1>
-              <p className="text-sm opacity-80 mt-1">
-                {profile?.full_name || "Facilitator"} · {cohorts.length} active cohort{cohorts.length !== 1 ? "s" : ""}
-              </p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-xs opacity-60">Learners</p>
-                <p className="text-2xl font-bold">{totalLearners}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-xs opacity-60">At Risk</p>
-                <p className={cn("text-2xl font-bold", totalAtRisk > 0 && "text-[hsl(38,92%,50%)]")}>{totalAtRisk}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </FadeIn>
-
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: "Active Cohorts", value: cohorts.length, icon: <Users className="w-4 h-4 text-accent" /> },
-          { label: "Pending Grading", value: pendingSubmissions.length, icon: <FileCheck className="w-4 h-4 text-info" /> },
-          { label: "At Risk Learners", value: totalAtRisk, icon: <AlertTriangle className="w-4 h-4 text-warning" /> },
-          { label: "Total Learners", value: totalLearners, icon: <Users className="w-4 h-4 text-success" /> },
-        ].map(s => (
-          <div key={s.label} className="bg-card rounded-xl p-4 shadow-card border border-border/50 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-secondary">{s.icon}</div>
-            <div>
-              <p className="text-lg font-bold text-foreground">{s.value}</p>
-              <p className="text-[10px] text-muted-foreground">{s.label}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+      <WelcomeBanner
+        subtitle={`${cohorts.length} active cohort${cohorts.length !== 1 ? "s" : ""} · ${totalLearners} learner${totalLearners !== 1 ? "s" : ""} in your care.`}
+        actions={
+          <>
+            <ActionButton icon={AlertTriangle} label="At Risk" onClick={() => {}} />
+            <ActionButton icon={FileCheck} label="Grade Submissions" onClick={() => navigate("/assessments")} primary />
+          </>
+        }
+      />
+      <KpiGrid items={kpiItems} />
 
       {/* Cohort Selector Cards */}
       {isLoading ? (

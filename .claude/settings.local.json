@@ -1,7 +1,15 @@
 {
   "permissions": {
     "allow": [
-      "PowerShell(\\(Get-Command npm -ErrorAction SilentlyContinue\\).Source; \\(Get-Command node -ErrorAction SilentlyContinue\\).Source)"
+      "PowerShell(\\(Get-Command npm -ErrorAction SilentlyContinue\\).Source; \\(Get-Command node -ErrorAction SilentlyContinue\\).Source)",
+      "mcp__d406c504-b54e-42ec-8d2d-481d2f833d66__list_projects",
+      "mcp__d406c504-b54e-42ec-8d2d-481d2f833d66__list_edge_functions",
+      "Bash(supabase --version)",
+      "PowerShell(supabase --version)",
+      "mcp__d406c504-b54e-42ec-8d2d-481d2f833d66__execute_sql",
+      "mcp__d406c504-b54e-42ec-8d2d-481d2f833d66__get_logs",
+      "Bash(git -C C:/Development/skillchain add src/components/layout/AppSidebar.tsx src/pages/ProgrammeManagerPortal.tsx)",
+      "Bash(git -C C:/Development/skillchain commit -m ' *)"
     ]
   }
 }

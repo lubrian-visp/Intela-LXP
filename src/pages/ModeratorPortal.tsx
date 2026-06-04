@@ -1,17 +1,18 @@
 import { useState } from "react";
 import {
   Shield, CheckCircle2, Clock,
-  Search, Eye, Flag,
-  ThumbsUp, ThumbsDown, BarChart3,
+  Search, Eye, Flag, AlertTriangle, BarChart3,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { FadeIn, StaggerContainer, StaggerItem } from "@/components/animations/MotionWrappers";
+import { FadeIn } from "@/components/animations/MotionWrappers";
 import { useModerationItems, useUpdateModerationItem, useRealtimeSync } from "@/hooks/useCoreData";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { ModerationReviewDialog } from "@/components/moderation/ModerationReviewDialog";
 import CalendarWidget from "@/components/calendar/CalendarWidget";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
+import { WelcomeBanner, KpiGrid, ActionButton } from "@/components/dashboard/DashboardShell";
+import { useNavigate } from "react-router-dom";
 
 const statusLabels: Record<string, string> = {
   pending: "Pending",
@@ -40,6 +41,7 @@ export default function ModeratorPortal() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterPriority, setFilterPriority] = useState("all");
   const [reviewItem, setReviewItem] = useState<any>(null);
+  const navigate = useNavigate();
 
   const { data: items = [], isLoading } = useModerationItems();
   const { data: calendarEvents = [] } = useCalendarEvents();
@@ -60,11 +62,11 @@ export default function ModeratorPortal() {
   const resolvedCount = items.filter((i: any) => ["approved", "rejected"].includes(i.status)).length;
   const flaggedCount = items.filter((i: any) => i.priority === "high").length;
 
-  const stats = [
-    { label: "Pending Reviews", value: String(pendingCount), icon: Clock },
-    { label: "Resolved", value: String(resolvedCount), icon: CheckCircle2 },
-    { label: "High Priority", value: String(flaggedCount), icon: Flag },
-    { label: "Total Items", value: String(items.length), icon: BarChart3 },
+  const kpiItems = [
+    { label: "Pending Reviews", value: pendingCount, sub: "awaiting action", trend: pendingCount === 0, icon: Clock, iconBg: "bg-orange-500/10", iconColor: "text-orange-500" },
+    { label: "Resolved", value: resolvedCount, sub: "this period", trend: true, icon: CheckCircle2, iconBg: "bg-green-500/10", iconColor: "text-green-500" },
+    { label: "High Priority", value: flaggedCount, sub: flaggedCount > 0 ? "urgent" : "none", trend: flaggedCount === 0, icon: AlertTriangle, iconBg: flaggedCount > 0 ? "bg-rose-500/10" : "bg-green-500/10", iconColor: flaggedCount > 0 ? "text-rose-500" : "text-green-500" },
+    { label: "Total Items", value: items.length, sub: "in queue", trend: true, icon: BarChart3, iconBg: "bg-blue-500/10", iconColor: "text-blue-500" },
   ];
 
   const handleReviewSubmit = (data: { id: string; status: "approved" | "rejected"; moderation_feedback: string; rejection_category?: string; review_notes?: string }) => {
@@ -90,29 +92,16 @@ export default function ModeratorPortal() {
 
   return (
     <div className="space-y-6">
-      <FadeIn>
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Moderator Portal</h1>
-          <p className="text-sm text-muted-foreground mt-1">Review flagged content, manage reports, and enforce community standards.</p>
-        </div>
-      </FadeIn>
-
-      {/* Stats */}
-      <StaggerContainer className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map(s => (
-          <StaggerItem key={s.label}>
-            <div className="bg-card rounded-xl shadow-card border border-border/50 p-5">
-              <div className="flex items-center justify-between mb-3">
-                <div className="p-2 rounded-lg bg-secondary">
-                  <s.icon className="w-4 h-4 text-muted-foreground" />
-                </div>
-              </div>
-              <p className="text-2xl font-bold text-foreground">{s.value}</p>
-              <p className="text-[11px] text-muted-foreground mt-1">{s.label}</p>
-            </div>
-          </StaggerItem>
-        ))}
-      </StaggerContainer>
+      <WelcomeBanner
+        subtitle="Review flagged content, manage reports, and enforce quality standards."
+        actions={
+          <>
+            <ActionButton icon={Flag} label="High Priority" onClick={() => setFilterPriority("high")} />
+            <ActionButton icon={Eye} label="Review Queue" onClick={() => setFilterStatus("pending")} primary />
+          </>
+        }
+      />
+      <KpiGrid items={kpiItems} />
 
       {/* Calendar Widget */}
       <CalendarWidget events={calendarEvents} maxItems={3} />
