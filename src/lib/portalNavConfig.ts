@@ -16,7 +16,8 @@ import {
 export type AppRole =
   | "super_admin" | "systems_admin"
   | "programme_manager" | "operations" | "talent_manager" | "sponsor"
-  | "facilitator" | "assessor" | "moderator" | "mentor" | "learner";
+  | "facilitator" | "assessor" | "moderator" | "mentor" | "learner"
+  | "ld_support_officer";
 
 export type DomainKey = "technical" | "business" | "learning_development";
 
@@ -91,33 +92,35 @@ export interface DomainPortalConfig {
 // ─── Role → Domain mapping ──────────────────────────────────────────
 
 const roleToDomain: Record<AppRole, DomainKey> = {
-  super_admin:       "technical",
-  systems_admin:     "technical",
-  programme_manager: "business",
-  operations:        "business",
-  talent_manager:    "business",
-  sponsor:           "business",
-  facilitator:       "learning_development",
-  assessor:          "learning_development",
-  moderator:         "learning_development",
-  mentor:            "learning_development",
-  learner:           "learning_development",
+  super_admin:        "technical",
+  systems_admin:      "technical",
+  programme_manager:  "business",
+  operations:         "business",
+  talent_manager:     "business",
+  sponsor:            "business",
+  facilitator:        "learning_development",
+  assessor:           "learning_development",
+  moderator:          "learning_development",
+  mentor:             "learning_development",
+  learner:            "learning_development",
+  ld_support_officer: "learning_development",
 };
 
 // ─── Dashboard path per role ────────────────────────────────────────
 
 const roleDashboardPath: Record<AppRole, string> = {
-  super_admin:       "/dashboard",
-  systems_admin:     "/systems-admin",
-  programme_manager: "/programme-manager",
-  operations:        "/operations",
-  talent_manager:    "/talent-manager",
-  sponsor:           "/sponsor-portal",
-  facilitator:       "/facilitator",
-  assessor:          "/assessor",
-  moderator:         "/moderator",
-  mentor:            "/mentor",
-  learner:           "/learner",
+  super_admin:        "/dashboard",
+  systems_admin:      "/systems-admin",
+  programme_manager:  "/programme-manager",
+  operations:         "/operations",
+  talent_manager:     "/talent-manager",
+  sponsor:            "/sponsor-portal",
+  facilitator:        "/facilitator",
+  assessor:           "/assessor",
+  moderator:          "/moderator",
+  mentor:             "/mentor",
+  learner:            "/learner",
+  ld_support_officer: "/ld-support",
 };
 
 // ══════════════════════════════════════════════════════════════════════
@@ -637,11 +640,39 @@ export const domainPortals: Record<DomainKey, DomainPortalConfig> = {
         ],
       },
 
+      // ── L&D Support Officer ──
+      {
+        title: "Overview",
+        items: [
+          { label: "Dashboard",          icon: LayoutDashboard, path: "__DASHBOARD__",           roles: ["ld_support_officer"] },
+          { label: "Calendar",           icon: Calendar,        path: "/calendar",               roles: ["ld_support_officer"] },
+          { label: "Upcoming Sessions",  icon: Video,           path: "/sessions",               roles: ["ld_support_officer"] },
+          { label: "Announcements",      icon: Bell,            path: "/announcements",          roles: ["ld_support_officer"] },
+        ],
+      },
+      {
+        title: "Programme Support",
+        items: [
+          { label: "Cohort Overview",    icon: Users,           path: "/cohort-management",      roles: ["ld_support_officer"] },
+          { label: "Timetable",          icon: Calendar,        path: "/sessions",               roles: ["ld_support_officer"] },
+          { label: "Learner List",       icon: GraduationCap,   path: "/learner/onboarding",     roles: ["ld_support_officer"] },
+          { label: "Attendance Sheets",  icon: ListChecks,      path: "/sessions",               roles: ["ld_support_officer"] },
+        ],
+      },
+      {
+        title: "Administrative Tasks",
+        items: [
+          { label: "Documents & Files",  icon: FileText,        path: "/portfolio",              roles: ["ld_support_officer"] },
+          { label: "Discussion Forums",  icon: MessagesSquare,  path: "/discussions",            roles: ["ld_support_officer"] },
+          { label: "Quote Management",   icon: FileText,        path: "/provider/quotes",        roles: ["ld_support_officer"] },
+        ],
+      },
+
       // ── Shared ──
       {
         title: "Account",
         items: [
-          { label: "My Profile", icon: User, path: "/my-profile" },
+          { label: "My Profile", icon: User,     path: "/my-profile" },
           { label: "My Settings", icon: Settings, path: "/my-settings" },
         ],
       },
@@ -684,17 +715,18 @@ export function getDomainPortalForUser(roles: string[]): {
 }
 
 const rolePortalOverrides: Partial<Record<AppRole, { portalTitle: string; subtitle: string }>> = {
-  super_admin:       { portalTitle: "SUPER ADMIN",        subtitle: "Platform Oversight" },
-  systems_admin:     { portalTitle: "SYSTEMS ADMIN",      subtitle: "Infrastructure Management" },
-  programme_manager: { portalTitle: "PROGRAMME MANAGER",  subtitle: "Content & Delivery Management" },
-  operations:        { portalTitle: "OPERATIONS CONTROL", subtitle: "Operational Oversight" },
-  talent_manager:    { portalTitle: "TALENT MANAGEMENT",  subtitle: "Workforce Development" },
-  learner:           { portalTitle: "LEARNER PORTAL",     subtitle: "My Learning Journey" },
-  facilitator:       { portalTitle: "FACILITATOR PORTAL", subtitle: "Teaching & Facilitation" },
-  assessor:          { portalTitle: "ASSESSOR PORTAL",    subtitle: "Assessment & Grading" },
-  moderator:         { portalTitle: "MODERATOR PORTAL",   subtitle: "Quality Assurance" },
-  mentor:            { portalTitle: "MENTOR PORTAL",      subtitle: "Guidance & Support" },
-  sponsor:           { portalTitle: "SPONSOR PORTAL",     subtitle: "Investment & Oversight" },
+  super_admin:        { portalTitle: "SUPER ADMIN",           subtitle: "Platform Oversight" },
+  systems_admin:      { portalTitle: "SYSTEMS ADMIN",         subtitle: "Infrastructure Management" },
+  programme_manager:  { portalTitle: "PROGRAMME MANAGER",     subtitle: "Content & Delivery Management" },
+  operations:         { portalTitle: "OPERATIONS CONTROL",    subtitle: "Operational Oversight" },
+  talent_manager:     { portalTitle: "TALENT MANAGEMENT",     subtitle: "Workforce Development" },
+  learner:            { portalTitle: "LEARNER PORTAL",        subtitle: "My Learning Journey" },
+  facilitator:        { portalTitle: "FACILITATOR PORTAL",    subtitle: "Teaching & Facilitation" },
+  assessor:           { portalTitle: "ASSESSOR PORTAL",       subtitle: "Assessment & Grading" },
+  moderator:          { portalTitle: "MODERATOR PORTAL",      subtitle: "Quality Assurance" },
+  mentor:             { portalTitle: "MENTOR PORTAL",         subtitle: "Guidance & Support" },
+  sponsor:            { portalTitle: "SPONSOR PORTAL",        subtitle: "Investment & Oversight" },
+  ld_support_officer: { portalTitle: "L&D SUPPORT",          subtitle: "Learning & Development Administration" },
 };
 
 export function getPersonalizedPortalConfig(
@@ -755,6 +787,7 @@ const pathToDomain: Record<string, DomainKey> = {
   "/provider": "business",
   // L&D
   "/learner": "learning_development",
+  "/ld-support": "learning_development",
   "/facilitator": "learning_development",
   "/assessor": "learning_development",
   "/moderator": "learning_development",

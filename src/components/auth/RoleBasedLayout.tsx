@@ -20,7 +20,7 @@ import {
 const allDomainRoles: Record<DomainKey, AppRole[]> = {
   technical: ["super_admin", "systems_admin"],
   business: ["programme_manager", "operations", "talent_manager", "sponsor"],
-  learning_development: ["facilitator", "assessor", "moderator", "mentor", "learner"],
+  learning_development: ["facilitator", "assessor", "moderator", "mentor", "learner", "ld_support_officer"],
 };
 
 /**

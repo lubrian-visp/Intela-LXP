@@ -45,7 +45,8 @@ const BillingConfig = lazy(() => import("@/pages/BillingConfig"));
 const RolesPermissions = lazy(() => import("@/pages/RolesPermissions"));
 const ProgrammeTypes = lazy(() => import("@/pages/ProgrammeTypes"));
 const LearnerDashboard = lazy(() => import("@/pages/LearnerDashboard"));
-const FacilitatorDashboard = lazy(() => import("@/pages/FacilitatorDashboard"));
+const FacilitatorDashboard  = lazy(() => import("@/pages/FacilitatorDashboard"));
+const LdSupportDashboard   = lazy(() => import("@/pages/LdSupportDashboard"));
 const PortfolioOfEvidence = lazy(() => import("@/pages/PortfolioOfEvidence"));
 const LearnerOnboarding = lazy(() => import("@/pages/LearnerOnboarding"));
 const StaffOnboarding = lazy(() => import("@/pages/StaffOnboarding"));
@@ -237,6 +238,7 @@ const App = () => (
                           <Route path="/staff/onboarding" element={<StaffOnboarding />} />
                           <Route path="/admin/staff-pool" element={<AdminStaffPool />} />
                           <Route path="/facilitator" element={<FacilitatorDashboard />} />
+                          <Route path="/ld-support"  element={<LdSupportDashboard />} />
                           <Route path="/programmes" element={<Programmes />} />
                           <Route path="/programmes/:programmeId/builder" element={<ProgrammeBuilder />} />
                           <Route path="/pathways" element={<Pathways />} />
