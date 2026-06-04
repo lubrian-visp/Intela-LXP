@@ -258,6 +258,7 @@ export const domainPortals: Record<DomainKey, DomainPortalConfig> = {
         title: "Programme Oversight",
         items: [
           { label: "Programme Hub", icon: Layers, path: "/programmes", roles: ["operations"] },
+          { label: "Programme Types", icon: Cog, path: "/programme-types", roles: ["operations"] },
         ],
       },
       {
@@ -308,7 +309,7 @@ export const domainPortals: Record<DomainKey, DomainPortalConfig> = {
           { label: "Dashboard", icon: LayoutDashboard, path: "__DASHBOARD__", roles: ["programme_manager"] },
           { label: "Calendar", icon: Calendar, path: "/calendar", roles: ["programme_manager"] },
           { label: "Programme Hub", icon: GraduationCap, path: "/programmes", roles: ["programme_manager"] },
-          { label: "Programme Types", icon: Layers, path: "/admin/programme-types", roles: ["programme_manager"] },
+          { label: "Programme Types", icon: Layers, path: "/programme-types", roles: ["programme_manager"] },
           { label: "Cohort Management", icon: Users, path: "/cohort-management", roles: ["programme_manager"] },
           { label: "Cohorts", icon: Layers, path: "/cohorts", roles: ["programme_manager"] },
           { label: "Timetable", icon: Calendar, path: "/sessions", roles: ["programme_manager"] },
@@ -771,7 +772,8 @@ const pathToDomain: Record<string, DomainKey> = {
   "/dashboard": "technical",
   "/executive-dashboard": "technical",
   "/admin": "technical",
-  "/admin/staff-pool": "technical",
+  "/admin/staff-pool":   "technical",
+  "/programme-types":   "business",
   "/systems-admin": "technical",
   // Business
   "/programme-manager": "business",

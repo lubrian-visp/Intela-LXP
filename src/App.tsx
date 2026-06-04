@@ -43,7 +43,8 @@ const TenantAdmin = lazy(() => import("@/pages/TenantAdmin"));
 const PlatformAnalytics = lazy(() => import("@/pages/PlatformAnalytics"));
 const BillingConfig = lazy(() => import("@/pages/BillingConfig"));
 const RolesPermissions = lazy(() => import("@/pages/RolesPermissions"));
-const ProgrammeTypes = lazy(() => import("@/pages/ProgrammeTypes"));
+const ProgrammeTypes          = lazy(() => import("@/pages/ProgrammeTypes"));
+const ProgrammeTypeEngineView = lazy(() => import("@/pages/ProgrammeTypeEngineView"));
 const LearnerDashboard = lazy(() => import("@/pages/LearnerDashboard"));
 const FacilitatorDashboard  = lazy(() => import("@/pages/FacilitatorDashboard"));
 const LdSupportDashboard   = lazy(() => import("@/pages/LdSupportDashboard"));
@@ -262,6 +263,7 @@ const App = () => (
                           <Route path="/programme-manager" element={<ProgrammeManagerPortal />} />
                           <Route path="/systems-admin" element={<SystemsAdminPortal />} />
                           <Route path="/admin/programme-types" element={<ProgrammeTypes />} />
+                          <Route path="/programme-types" element={<ProgrammeTypeEngineView />} />
                           <Route path="/admin/tenants" element={<Tenants />} />
                           <Route path="/tenant-admin" element={<TenantAdmin />} />
                           <Route path="/admin/platform-analytics" element={<PlatformAnalytics />} />
