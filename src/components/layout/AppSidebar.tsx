@@ -51,6 +51,7 @@ const operationsSection: NavSection = {
   items: [
     { label: "Operations Control", icon: Activity, path: "/operations", roles: ["operations", "super_admin"] },
     { label: "Approval Queue", icon: CheckSquare, path: "/approvals", roles: ["operations", "programme_manager", "super_admin"] },
+    { label: "Admin Staff Pool", icon: Users, path: "/admin/staff-pool", roles: ["super_admin", "systems_admin", "operations", "programme_manager", "talent_manager"] },
     { label: "Learner Onboarding", icon: UserPlus, path: "/learner/onboarding", roles: ["super_admin", "programme_manager", "operations", "facilitator"] },
     { label: "Staff Onboarding", icon: Briefcase, path: "/staff/onboarding", roles: ["super_admin", "operations", "systems_admin"] },
     { label: "Announcements", icon: Bell, path: "/announcements", roles: ["super_admin", "operations", "programme_manager"] },
@@ -105,6 +106,7 @@ const learnerPipelineSection: NavSection = {
   items: [
     { label: "Learner Onboarding", icon: UserPlus, path: "/learner/onboarding", roles: ["super_admin", "programme_manager", "operations", "facilitator"] },
     { label: "Approval Queue", icon: CheckSquare, path: "/approvals", roles: ["operations", "programme_manager", "super_admin"] },
+    { label: "Admin Staff Pool", icon: Users, path: "/admin/staff-pool", roles: ["programme_manager"] },
     { label: "Sponsor Management", icon: Building2, path: "/sponsors", roles: ["super_admin", "operations", "programme_manager"] },
   ],
 };

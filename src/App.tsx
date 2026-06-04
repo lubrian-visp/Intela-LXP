@@ -49,6 +49,7 @@ const FacilitatorDashboard = lazy(() => import("@/pages/FacilitatorDashboard"));
 const PortfolioOfEvidence = lazy(() => import("@/pages/PortfolioOfEvidence"));
 const LearnerOnboarding = lazy(() => import("@/pages/LearnerOnboarding"));
 const StaffOnboarding = lazy(() => import("@/pages/StaffOnboarding"));
+const AdminStaffPool  = lazy(() => import("@/pages/AdminStaffPool"));
 const TalentManagement = lazy(() => import("@/pages/TalentManagement"));
 const TalentManagerPortal = lazy(() => import("@/pages/TalentManagerPortal"));
 const SponsorPartner = lazy(() => import("@/pages/SponsorPartner"));
@@ -234,6 +235,7 @@ const App = () => (
                           <Route path="/gradebook" element={<Gradebook />} />
                           <Route path="/credentials" element={<Credentials />} />
                           <Route path="/staff/onboarding" element={<StaffOnboarding />} />
+                          <Route path="/admin/staff-pool" element={<AdminStaffPool />} />
                           <Route path="/facilitator" element={<FacilitatorDashboard />} />
                           <Route path="/programmes" element={<Programmes />} />
                           <Route path="/programmes/:programmeId/builder" element={<ProgrammeBuilder />} />
