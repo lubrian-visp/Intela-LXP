@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import { AlertTriangle, Wand2 } from "lucide-react";
 import {
   type StructuralAttributes,
   type FinancialAttributes,
@@ -127,18 +126,8 @@ export function FinancialEditor({ data, onChange }: CategoryProps<FinancialAttri
   const update = (key: keyof FinancialAttributes, value: any) => onChange({ ...data, [key]: value });
   const onToggleLock = (fields: string[]) => update("locked_fields", fields);
 
-  const feeAmountSetButFree = data.fee_structure === "free" && (data.default_fee_amount ?? 0) > 0;
-
   return (
     <div className="space-y-4">
-      {feeAmountSetButFree && (
-        <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-warning/8 border border-warning/20">
-          <AlertTriangle className="w-3.5 h-3.5 text-warning shrink-0 mt-0.5" />
-          <p className="text-[11px] text-warning">
-            Fee structure is set to <strong>Free / Funded</strong> but a fee amount is entered. Clear the amount or change the structure.
-          </p>
-        </div>
-      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <LockField fieldName="fee_structure" lockedFields={data.locked_fields} onToggleLock={onToggleLock} label="Fee Structure">
           <SelectInput
@@ -228,26 +217,18 @@ export function WorkflowEditor({ data, onChange }: CategoryProps<WorkflowAttribu
         <LockField fieldName="approval_required" lockedFields={data.locked_fields} onToggleLock={onToggleLock} label="Approval Gate">
           <Toggle value={data.approval_required} onChange={v => update("approval_required", v)} label="Programme creation requires approval" />
         </LockField>
-        {/* Auto-publish and stages only make sense when approval is enabled */}
-        <div className={cn("transition-opacity", !data.approval_required && "opacity-40 pointer-events-none")}>
-          <LockField fieldName="auto_publish" lockedFields={data.locked_fields} onToggleLock={onToggleLock} label="Auto-publish">
-            <Toggle value={data.auto_publish} onChange={v => update("auto_publish", v)} label="Auto-publish after all approvals complete" />
-          </LockField>
-        </div>
+        <LockField fieldName="auto_publish" lockedFields={data.locked_fields} onToggleLock={onToggleLock} label="Auto-publish">
+          <Toggle value={data.auto_publish} onChange={v => update("auto_publish", v)} label="Auto-publish after approval" />
+        </LockField>
       </div>
-      <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-4 transition-opacity", !data.approval_required && "opacity-40 pointer-events-none")}>
-        <LockField fieldName="approval_stages" lockedFields={data.locked_fields} onToggleLock={onToggleLock} label="Approval Stages" hint="Number of approval gates required">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <LockField fieldName="approval_stages" lockedFields={data.locked_fields} onToggleLock={onToggleLock} label="Approval Stages" hint="Number of approval gates">
           <NumberInput value={data.approval_stages} onChange={v => update("approval_stages", v ?? 1)} placeholder="1" />
         </LockField>
-        <LockField fieldName="review_cycle_days" lockedFields={data.locked_fields} onToggleLock={onToggleLock} label="Review Cycle (days)" hint="Days between mandatory programme reviews">
+        <LockField fieldName="review_cycle_days" lockedFields={data.locked_fields} onToggleLock={onToggleLock} label="Review Cycle (days)" hint="Days between mandatory reviews">
           <NumberInput value={data.review_cycle_days} onChange={v => update("review_cycle_days", v)} placeholder="No cycle" />
         </LockField>
       </div>
-      {!data.approval_required && (
-        <p className="text-[10px] text-muted-foreground px-1">
-          Enable the approval gate above to configure stages and auto-publish rules.
-        </p>
-      )}
     </div>
   );
 }
@@ -296,25 +277,6 @@ export function EvaluationEditor({ data, onChange }: CategoryProps<EvaluationTem
 
   const totalWeight = data.knowledge_weight + data.practical_weight + data.workplace_weight;
   const isBalanced = totalWeight === 100;
-  const remainder = 100 - totalWeight;
-
-  // Auto-normalize: distribute remainder proportionally across non-zero domains
-  const handleAutoNormalize = () => {
-    const k = data.knowledge_weight;
-    const p = data.practical_weight;
-    const w = data.workplace_weight;
-    const sum = k + p + w;
-    if (sum === 0) {
-      // Equal split
-      onChange({ ...data, knowledge_weight: 34, practical_weight: 33, workplace_weight: 33 });
-    } else {
-      // Proportional round-to-integer with remainder on largest
-      const newK = Math.round((k / sum) * 100);
-      const newP = Math.round((p / sum) * 100);
-      const newW = 100 - newK - newP;
-      onChange({ ...data, knowledge_weight: newK, practical_weight: newP, workplace_weight: Math.max(0, newW) });
-    }
-  };
 
   return (
     <div className="space-y-5">
@@ -322,37 +284,13 @@ export function EvaluationEditor({ data, onChange }: CategoryProps<EvaluationTem
       <div>
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Domain Weights</p>
-          <div className="flex items-center gap-2">
-            {!isBalanced && (
-              <button
-                type="button"
-                onClick={handleAutoNormalize}
-                className="flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
-              >
-                <Wand2 className="w-2.5 h-2.5" />
-                Auto-normalize
-              </button>
-            )}
-            <span className={cn(
-              "text-[10px] font-medium px-2 py-0.5 rounded-full",
-              isBalanced ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
-            )}>
-              {totalWeight}% / 100%
-            </span>
-          </div>
+          <span className={cn(
+            "text-[10px] font-medium px-2 py-0.5 rounded-full",
+            isBalanced ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
+          )}>
+            {totalWeight}% / 100%
+          </span>
         </div>
-
-        {/* Blocking error banner */}
-        {!isBalanced && (
-          <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-destructive/8 border border-destructive/20 mb-3">
-            <AlertTriangle className="w-3.5 h-3.5 text-destructive shrink-0" />
-            <p className="text-[11px] text-destructive">
-              Weights total <strong>{totalWeight}%</strong> — must equal exactly 100% before saving.
-              {remainder > 0 ? ` ${remainder}% unallocated.` : ` ${Math.abs(remainder)}% over-allocated.`}
-            </p>
-          </div>
-        )}
-
         <div className="grid grid-cols-3 gap-3">
           {(["knowledge", "practical", "workplace"] as const).map(domain => {
             const weightKey = `${domain}_weight` as keyof EvaluationTemplate;

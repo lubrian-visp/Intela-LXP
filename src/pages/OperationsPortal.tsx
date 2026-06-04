@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/animations/MotionWrappers";
 import { useApprovalTasks, useUpdateApprovalTask, useEnrolments, useProgrammes, useSubmissions, useCohorts, useRealtimeSync } from "@/hooks/useCoreData";
-import { useProgrammeTypes } from "@/hooks/useProgrammeTypes";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -80,7 +79,6 @@ export default function OperationsPortal() {
   const { data: tasks, isLoading: loadingTasks } = useApprovalTasks();
   const { data: enrolments } = useEnrolments();
   const { data: programmes } = useProgrammes();
-  const { data: programmeTypes = [] } = useProgrammeTypes();
   const updateTask = useUpdateApprovalTask();
   const { data: submissions } = useSubmissions();
   const { data: registrations } = useQuery({
@@ -118,11 +116,8 @@ export default function OperationsPortal() {
       const total = pEnrolments.length;
       const completed = pEnrolments.filter(e => e.status === "completed").length;
       const avgProg = total > 0 ? Math.round(pEnrolments.reduce((s, e) => s + (e.progress_percentage ?? 0), 0) / total) : 0;
-      const typeData = (p as any).programme_types as { name: string; color: string } | null;
       return {
         name: p.title,
-        typeName:  typeData?.name  ?? null,
-        typeColor: typeData?.color ?? null,
         enrolments: total,
         completion: total > 0 ? Math.round((completed / total) * 100) : 0,
         slaScore: avgProg,
@@ -430,7 +425,6 @@ export default function OperationsPortal() {
                 <thead>
                   <tr className="border-b border-border bg-secondary/30">
                     <th className="text-left px-6 py-2.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Programme</th>
-                    <th className="text-left px-4 py-2.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
                     <th className="text-center px-4 py-2.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Enrolments</th>
                     <th className="text-center px-4 py-2.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Completion</th>
                     <th className="text-center px-4 py-2.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">SLA Score</th>
@@ -441,14 +435,6 @@ export default function OperationsPortal() {
                   {programmePerformance.map(p => (
                     <tr key={p.name} className="hover:bg-secondary/20 transition-colors">
                       <td className="px-6 py-2.5 text-xs font-medium text-foreground">{p.name}</td>
-                      <td className="px-4 py-2.5">
-                        {p.typeName ? (
-                          <span className="flex items-center gap-1 text-[10px]">
-                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.typeColor ?? "#888" }} />
-                            <span className="text-muted-foreground">{p.typeName}</span>
-                          </span>
-                        ) : <span className="text-muted-foreground/40">—</span>}
-                      </td>
                       <td className="px-4 py-2.5 text-center text-xs text-foreground">{p.enrolments}</td>
                       <td className="px-4 py-2.5 text-center">
                         <div className="flex items-center justify-center gap-2">
@@ -656,7 +642,6 @@ export default function OperationsPortal() {
                 <thead>
                   <tr className="border-b border-border bg-secondary/30">
                     <th className="text-left px-6 py-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Programme</th>
-                    <th className="text-left px-4 py-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
                     <th className="text-center px-4 py-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Total Enrolments</th>
                     <th className="text-center px-4 py-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Completion Rate</th>
                     <th className="text-center px-4 py-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">SLA Score</th>
@@ -669,14 +654,6 @@ export default function OperationsPortal() {
                     <tr key={p.name} className="hover:bg-secondary/20 transition-colors">
                       <td className="px-6 py-3.5">
                         <p className="text-sm font-medium text-foreground">{p.name}</p>
-                      </td>
-                      <td className="px-4 py-3.5">
-                        {p.typeName ? (
-                          <span className="flex items-center gap-1.5 text-[11px]">
-                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: p.typeColor ?? "#888" }} />
-                            <span className="text-muted-foreground font-medium">{p.typeName}</span>
-                          </span>
-                        ) : <span className="text-muted-foreground/40 text-xs">—</span>}
                       </td>
                       <td className="px-4 py-3.5 text-center text-sm font-semibold text-foreground">{p.enrolments}</td>
                       <td className="px-4 py-3.5">

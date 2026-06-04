@@ -10,7 +10,6 @@ import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/animations/MotionWrappers";
 import { useProgrammes, useCohorts, useEnrolments, useRealtimeSync } from "@/hooks/useCoreData";
-import { useProgrammeTypes } from "@/hooks/useProgrammeTypes";
 import { Skeleton } from "@/components/ui/skeleton";
 import CalendarWidget from "@/components/calendar/CalendarWidget";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
@@ -90,7 +89,6 @@ export default function ProgrammeManagerPortal() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
-  const [filterType, setFilterType] = useState("All");
   const { profile } = useAuth();
 
   useRealtimeSync(["programmes", "cohorts", "enrolments", "approval_tasks", "notifications"]);
@@ -98,7 +96,6 @@ export default function ProgrammeManagerPortal() {
   const { data: programmes, isLoading: loadingProg } = useProgrammes();
   const { data: cohorts } = useCohorts();
   const { data: enrolments } = useEnrolments();
-  const { data: programmeTypes = [] } = useProgrammeTypes();
   const { data: calendarEvents = [] } = useCalendarEvents();
 
   const programmeRows = useMemo(() => {
@@ -112,8 +109,7 @@ export default function ProgrammeManagerPortal() {
       const avgProgress = activeEnr.length > 0
         ? Math.round(activeEnr.reduce((s, e) => s + (e.progress_percentage ?? 0), 0) / activeEnr.length)
         : 0;
-      const typeData = (p as any).programme_types as { name: string; color: string } | null;
-      return { id: p.id, name: p.title, nqfLevel: p.nqf_level, cohorts: progCohorts.length, enrolled: progEnrolments.length, completed: completedEnr, atRisk, completionRate: avgProgress, status: p.status, typeName: typeData?.name ?? null, typeColor: typeData?.color ?? null };
+      return { id: p.id, name: p.title, nqfLevel: p.nqf_level, cohorts: progCohorts.length, enrolled: progEnrolments.length, completed: completedEnr, atRisk, completionRate: avgProgress, status: p.status };
     });
   }, [programmes, cohorts, enrolments]);
 
@@ -121,10 +117,9 @@ export default function ProgrammeManagerPortal() {
     return programmeRows.filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
       const matchesFilter = filterStatus === "All" || p.status === filterStatus.toLowerCase();
-      const matchesType   = filterType === "All" || p.typeName === filterType;
-      return matchesSearch && matchesFilter && matchesType;
+      return matchesSearch && matchesFilter;
     });
-  }, [programmeRows, search, filterStatus, filterType]);
+  }, [programmeRows, search, filterStatus]);
 
   const stats = useMemo(() => {
     const active = programmeRows.filter(p => p.status === "active").length;
@@ -339,14 +334,6 @@ export default function ProgrammeManagerPortal() {
                 />
               </div>
               <select
-                value={filterType}
-                onChange={e => setFilterType(e.target.value)}
-                className="text-xs px-2.5 py-1.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-              >
-                <option value="All">All Types</option>
-                {programmeTypes.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
-              </select>
-              <select
                 value={filterStatus}
                 onChange={e => setFilterStatus(e.target.value)}
                 className="text-xs px-2.5 py-1.5 rounded-lg border border-border bg-background text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
@@ -360,7 +347,6 @@ export default function ProgrammeManagerPortal() {
               <thead>
                 <tr className="border-b border-border bg-secondary/30">
                   <th className="text-left px-6 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Programme</th>
-                  <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Type</th>
                   <th className="text-center px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">NQF</th>
                   <th className="text-center px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Cohorts</th>
                   <th className="text-center px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Enrolled</th>
@@ -372,7 +358,7 @@ export default function ProgrammeManagerPortal() {
               <tbody className="divide-y divide-border/50">
                 {filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-10 text-center">
+                    <td colSpan={7} className="px-6 py-10 text-center">
                       <GraduationCap className="w-8 h-8 text-muted-foreground/20 mx-auto mb-2" />
                       <p className="text-sm text-muted-foreground">No programmes found.</p>
                     </td>
@@ -389,16 +375,6 @@ export default function ProgrammeManagerPortal() {
                           <div className={cn("w-1.5 h-8 rounded-full shrink-0", p.status === "active" ? "bg-green-500" : "bg-muted-foreground/30")} />
                           <span className="font-medium text-foreground">{p.name}</span>
                         </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        {p.typeName ? (
-                          <span className="flex items-center gap-1.5 text-[10px] font-medium">
-                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.typeColor ?? "#888" }} />
-                            <span className="text-muted-foreground">{p.typeName}</span>
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground/40 text-[11px]">—</span>
-                        )}
                       </td>
                       <td className="px-4 py-3 text-center">
                         {p.nqfLevel

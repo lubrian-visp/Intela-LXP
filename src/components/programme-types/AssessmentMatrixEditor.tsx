@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { type AssessmentAttributes, type AssessmentTypeRule } from "@/types/programmeTypeConfig";
-import { Shield, Scale, Info } from "lucide-react";
+import { CheckCircle2, XCircle, RotateCcw, Shield, Scale } from "lucide-react";
 
 interface AssessmentMatrixEditorProps {
   data: AssessmentAttributes;
@@ -8,45 +8,25 @@ interface AssessmentMatrixEditorProps {
 }
 
 const typeLabels: Record<string, { label: string; desc: string }> = {
-  formative:     { label: "Formative",     desc: "Continuous assessment during learning — quizzes, check-ins" },
-  summative:     { label: "Summative",     desc: "End-of-unit evaluation measuring overall achievement" },
-  homework:      { label: "Homework",      desc: "Take-home assignments completed outside session hours" },
-  peer_group:    { label: "Peer Group",    desc: "Learners evaluate each other's work" },
-  group_project: { label: "Group Project", desc: "Collaborative deliverable submitted by a team" },
-  final_project: { label: "Final Project", desc: "Capstone deliverable at programme conclusion" },
-  competency:    { label: "Competency",    desc: "Practical skills-based evaluation against a rubric" },
-  workplace:     { label: "Workplace",     desc: "On-the-job observation and sign-off by a supervisor" },
-  oral:          { label: "Oral",          desc: "Verbal examination or viva voce" },
-  portfolio:     { label: "Portfolio",     desc: "Curated collection of evidence across the programme" },
+  formative: { label: "Formative", desc: "Ongoing assessment during learning" },
+  summative: { label: "Summative", desc: "End-of-module evaluation" },
+  homework: { label: "Homework", desc: "Take-home assignments" },
+  peer_group: { label: "Peer Group", desc: "Peer-evaluated activities" },
+  group_project: { label: "Group Project", desc: "Collaborative submissions" },
+  final_project: { label: "Final Project", desc: "Capstone deliverable" },
+  competency: { label: "Competency", desc: "Skills-based assessment" },
+  workplace: { label: "Workplace", desc: "On-the-job evaluation" },
+  oral: { label: "Oral", desc: "Verbal examination" },
+  portfolio: { label: "Portfolio", desc: "Evidence collection" },
 };
 
-// Group assessment types for visual clarity
-const GROUPS: { label: string; color: string; types: string[] }[] = [
-  { label: "Core",          color: "bg-blue-500/5 border-blue-500/10",   types: ["formative", "summative"] },
-  { label: "Written",       color: "bg-amber-500/5 border-amber-500/10", types: ["homework"] },
-  { label: "Collaborative", color: "bg-green-500/5 border-green-500/10", types: ["peer_group", "group_project"] },
-  { label: "Project-Based", color: "bg-purple-500/5 border-purple-500/10", types: ["final_project", "competency"] },
-  { label: "Workplace",     color: "bg-orange-500/5 border-orange-500/10", types: ["workplace"] },
-  { label: "Verbal / Evidence", color: "bg-sky-500/5 border-sky-500/10", types: ["oral", "portfolio"] },
-];
-
-const COLUMN_TOOLTIPS: Record<string, string> = {
-  active:  "Enable this assessment type for programmes using this config",
-  mod:     "Require a moderator to validate marks before finalising",
-  weight:  "Default percentage weighting in the overall score (leave blank for unweighted)",
-  tries:   "Maximum number of attempts a learner is allowed",
-  resub:   "Allow learner to resubmit after a failed attempt",
-};
-
-function Toggle({ value, onChange, disabled }: { value: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
       type="button"
-      onClick={() => !disabled && onChange(!value)}
-      disabled={disabled}
+      onClick={() => onChange(!value)}
       className={cn(
         "w-8 h-4 rounded-full relative transition-colors shrink-0",
-        disabled ? "opacity-30 cursor-not-allowed" : "cursor-pointer",
         value ? "bg-success" : "bg-muted-foreground/20"
       )}
     >
@@ -55,19 +35,6 @@ function Toggle({ value, onChange, disabled }: { value: boolean; onChange: (v: b
         value ? "left-[17px]" : "left-[2px]"
       )} />
     </button>
-  );
-}
-
-function ColHeader({ label, tooltip }: { label: string; tooltip: string }) {
-  return (
-    <div className="flex items-center justify-center gap-1 group relative">
-      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{label}</span>
-      <Info className="w-3 h-3 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors cursor-help" />
-      {/* Tooltip */}
-      <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 hidden group-hover:block z-10 w-44 px-2.5 py-1.5 bg-foreground text-background text-[10px] rounded-lg shadow-lg pointer-events-none text-center leading-tight">
-        {tooltip}
-      </div>
-    </div>
   );
 }
 
@@ -82,21 +49,17 @@ export default function AssessmentMatrixEditor({ data, onChange }: AssessmentMat
     onChange({ ...data, [key]: value });
   };
 
-  const enabledCount  = data.allowed_types.filter(t => t.enabled).length;
-  const totalWeighting = data.allowed_types
-    .filter(t => t.enabled && t.default_weighting != null)
-    .reduce((sum, t) => sum + (t.default_weighting ?? 0), 0);
-  const hasWeighting  = data.allowed_types.some(t => t.enabled && t.default_weighting != null);
+  const enabledCount = data.allowed_types.filter(t => t.enabled).length;
 
   return (
     <div className="space-y-5">
-      {/* Global settings */}
+      {/* Global settings bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-blue-500/5 border border-blue-500/10">
+        <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-info/5 border border-info/10">
           <Toggle value={data.formative_required} onChange={v => updateGlobal("formative_required", v)} />
           <span className="text-[11px] font-medium text-foreground">Formative required</span>
         </div>
-        <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-blue-500/5 border border-blue-500/10">
+        <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-info/5 border border-info/10">
           <Toggle value={data.summative_required} onChange={v => updateGlobal("summative_required", v)} />
           <span className="text-[11px] font-medium text-foreground">Summative required</span>
         </div>
@@ -105,137 +68,85 @@ export default function AssessmentMatrixEditor({ data, onChange }: AssessmentMat
           <span className="text-[11px] font-medium text-foreground">Auto-moderate borderline</span>
         </div>
         <div className="px-3 py-2.5 rounded-lg bg-secondary/50 border border-border/30">
-          <div className="flex items-center gap-1 mb-1">
+          <div className="flex items-center gap-1.5">
             <Shield className="w-3 h-3 text-muted-foreground" />
-            <span className="text-[10px] text-muted-foreground">Moderation threshold %</span>
+            <span className="text-[10px] text-muted-foreground">Moderation threshold</span>
           </div>
           <input
             type="number"
             value={data.moderation_threshold_percent ?? ""}
             onChange={e => updateGlobal("moderation_threshold_percent", e.target.value === "" ? null : Number(e.target.value))}
-            className="w-full px-2 py-1 text-xs bg-card rounded border border-border/30 outline-none focus:ring-1 focus:ring-primary text-foreground"
+            className="w-full mt-1 px-2 py-1 text-xs bg-card rounded border border-border/30 outline-none focus:ring-1 focus:ring-accent text-foreground"
             placeholder="%"
-            min={0} max={100}
           />
         </div>
       </div>
 
-      {/* Grouped matrix */}
-      <div className="rounded-xl border border-border/30 overflow-hidden">
-        {/* Header row */}
-        <div className="grid grid-cols-[1fr_64px_64px_72px_60px_64px] gap-0 px-4 py-2.5 bg-secondary/50 border-b border-border/30">
+      {/* Matrix grid */}
+      <div className="bg-secondary/20 rounded-xl border border-border/30 overflow-hidden">
+        {/* Header */}
+        <div className="grid grid-cols-[1fr_60px_60px_70px_60px_60px] gap-0 px-4 py-2.5 border-b border-border/30 bg-secondary/40">
           <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Type</span>
-          <ColHeader label="Active" tooltip={COLUMN_TOOLTIPS.active} />
-          <ColHeader label="Mod."   tooltip={COLUMN_TOOLTIPS.mod} />
-          <ColHeader label="Weight" tooltip={COLUMN_TOOLTIPS.weight} />
-          <ColHeader label="Tries"  tooltip={COLUMN_TOOLTIPS.tries} />
-          <ColHeader label="Resub"  tooltip={COLUMN_TOOLTIPS.resub} />
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider text-center">Active</span>
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider text-center">Mod.</span>
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider text-center">Weight</span>
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider text-center">Tries</span>
+          <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider text-center">Resub</span>
         </div>
 
-        {GROUPS.map(group => {
-          const groupRules = group.types
-            .map(t => ({ rule: data.allowed_types.find(r => r.type === t), type: t }))
-            .filter(x => x.rule !== undefined) as { rule: AssessmentTypeRule; type: string }[];
-
-          if (groupRules.length === 0) return null;
-
+        {/* Rows */}
+        {data.allowed_types.map((rule, idx) => {
+          const meta = typeLabels[rule.type] || { label: rule.type, desc: "" };
           return (
-            <div key={group.label} className={cn("border-b border-border/20 last:border-0", group.color)}>
-              {/* Group label */}
-              <div className="px-4 py-1.5 border-b border-border/10">
-                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">{group.label}</span>
+            <div
+              key={rule.type}
+              className={cn(
+                "grid grid-cols-[1fr_60px_60px_70px_60px_60px] gap-0 px-4 py-3 items-center border-b border-border/20 transition-colors",
+                rule.enabled ? "bg-card" : "bg-secondary/10 opacity-60"
+              )}
+            >
+              <div>
+                <p className="text-xs font-medium text-foreground">{meta.label}</p>
+                <p className="text-[9px] text-muted-foreground">{meta.desc}</p>
               </div>
-
-              {groupRules.map(({ rule, type }) => {
-                const idx  = data.allowed_types.findIndex(r => r.type === type);
-                const meta = typeLabels[type] || { label: type, desc: "" };
-
-                return (
-                  <div
-                    key={type}
-                    className={cn(
-                      "grid grid-cols-[1fr_64px_64px_72px_60px_64px] gap-0 px-4 py-3 items-center border-b border-border/10 last:border-0 transition-colors",
-                      rule.enabled ? "bg-card/60 hover:bg-card" : "opacity-50"
-                    )}
-                  >
-                    {/* Type info */}
-                    <div>
-                      <p className="text-xs font-medium text-foreground">{meta.label}</p>
-                      <p className="text-[9px] text-muted-foreground leading-tight">{meta.desc}</p>
-                    </div>
-
-                    {/* Active */}
-                    <div className="flex justify-center">
-                      <Toggle value={rule.enabled} onChange={v => updateType(idx, { enabled: v })} />
-                    </div>
-
-                    {/* Moderation */}
-                    <div className="flex justify-center">
-                      <Toggle value={rule.requires_moderation} onChange={v => updateType(idx, { requires_moderation: v })} disabled={!rule.enabled} />
-                    </div>
-
-                    {/* Weight */}
-                    <div className="flex justify-center">
-                      <input
-                        type="number"
-                        value={rule.default_weighting ?? ""}
-                        onChange={e => updateType(idx, { default_weighting: e.target.value === "" ? null : Number(e.target.value) })}
-                        className="w-12 px-1.5 py-1 text-[11px] text-center bg-secondary/50 rounded border border-border/30 outline-none focus:ring-1 focus:ring-primary text-foreground disabled:opacity-30"
-                        placeholder="—"
-                        disabled={!rule.enabled}
-                        min={0} max={100}
-                      />
-                    </div>
-
-                    {/* Max attempts */}
-                    <div className="flex justify-center">
-                      <input
-                        type="number"
-                        value={rule.max_attempts}
-                        onChange={e => updateType(idx, { max_attempts: Number(e.target.value) || 1 })}
-                        className="w-10 px-1 py-1 text-[11px] text-center bg-secondary/50 rounded border border-border/30 outline-none focus:ring-1 focus:ring-primary text-foreground disabled:opacity-30"
-                        min={1} max={10}
-                        disabled={!rule.enabled}
-                      />
-                    </div>
-
-                    {/* Resubmission */}
-                    <div className="flex justify-center">
-                      <Toggle value={rule.allow_resubmission} onChange={v => updateType(idx, { allow_resubmission: v })} disabled={!rule.enabled} />
-                    </div>
-                  </div>
-                );
-              })}
+              <div className="flex justify-center">
+                <Toggle value={rule.enabled} onChange={v => updateType(idx, { enabled: v })} />
+              </div>
+              <div className="flex justify-center">
+                <Toggle value={rule.requires_moderation} onChange={v => updateType(idx, { requires_moderation: v })} />
+              </div>
+              <div className="flex justify-center">
+                <input
+                  type="number"
+                  value={rule.default_weighting ?? ""}
+                  onChange={e => updateType(idx, { default_weighting: e.target.value === "" ? null : Number(e.target.value) })}
+                  className="w-12 px-1.5 py-1 text-[11px] text-center bg-secondary/50 rounded border border-border/30 outline-none focus:ring-1 focus:ring-accent text-foreground"
+                  placeholder="—"
+                  disabled={!rule.enabled}
+                />
+              </div>
+              <div className="flex justify-center">
+                <input
+                  type="number"
+                  value={rule.max_attempts}
+                  onChange={e => updateType(idx, { max_attempts: Number(e.target.value) || 1 })}
+                  className="w-10 px-1 py-1 text-[11px] text-center bg-secondary/50 rounded border border-border/30 outline-none focus:ring-1 focus:ring-accent text-foreground"
+                  min={1}
+                  max={10}
+                  disabled={!rule.enabled}
+                />
+              </div>
+              <div className="flex justify-center">
+                <Toggle value={rule.allow_resubmission} onChange={v => updateType(idx, { allow_resubmission: v })} />
+              </div>
             </div>
           );
         })}
-
-        {/* Weight total footer */}
-        {hasWeighting && (
-          <div className="grid grid-cols-[1fr_64px_64px_72px_60px_64px] gap-0 px-4 py-2 bg-secondary/40 border-t border-border/30">
-            <span className="text-[10px] font-semibold text-muted-foreground">Total weight (enabled)</span>
-            <span /><span />
-            <div className="flex justify-center">
-              <span className={cn(
-                "text-[11px] font-bold px-2 py-0.5 rounded",
-                totalWeighting === 100 ? "text-green-600" : totalWeighting > 100 ? "text-destructive" : "text-orange-500"
-              )}>
-                {totalWeighting}%
-              </span>
-            </div>
-            <span /><span />
-          </div>
-        )}
       </div>
 
       <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
         <Scale className="w-3 h-3" />
         <span>{enabledCount} of {data.allowed_types.length} assessment types enabled</span>
-        {hasWeighting && totalWeighting !== 100 && (
-          <span className="text-orange-500 font-medium ml-1">
-            · weights total {totalWeighting}% (should be 100%)
-          </span>
-        )}
       </div>
     </div>
   );

@@ -171,54 +171,6 @@ export function useUpdateProgrammeType() {
   });
 }
 
-export function useImpactCounts(programmeTypeId: string | undefined) {
-  return useQuery({
-    queryKey: ["programme-type-impact", programmeTypeId],
-    queryFn: async () => {
-      if (!programmeTypeId) return { cohorts: 0, learners: 0 };
-
-      // Get all programme IDs of this type
-      const { data: programmes, error: pErr } = await supabase
-        .from("programmes")
-        .select("id")
-        .eq("programme_type_id", programmeTypeId);
-      if (pErr) throw pErr;
-
-      const programmeIds = (programmes ?? []).map(p => p.id);
-      if (programmeIds.length === 0) return { cohorts: 0, learners: 0 };
-
-      // Count cohorts
-      const { count: cohortCount, error: cErr } = await supabase
-        .from("cohorts")
-        .select("id", { count: "exact", head: true })
-        .in("programme_id", programmeIds);
-      if (cErr) throw cErr;
-
-      // Count active learners through enrolments
-      const { data: cohorts, error: chErr } = await supabase
-        .from("cohorts")
-        .select("id")
-        .in("programme_id", programmeIds);
-      if (chErr) throw chErr;
-
-      const cohortIds = (cohorts ?? []).map(c => c.id);
-      let learnerCount = 0;
-      if (cohortIds.length > 0) {
-        const { count, error: eErr } = await supabase
-          .from("enrolments")
-          .select("id", { count: "exact", head: true })
-          .in("cohort_id", cohortIds)
-          .in("status", ["active", "enrolled"]);
-        if (!eErr) learnerCount = count ?? 0;
-      }
-
-      return { cohorts: cohortCount ?? 0, learners: learnerCount };
-    },
-    enabled: !!programmeTypeId,
-    staleTime: 30_000,
-  });
-}
-
 export function useDeleteProgrammeType() {
   const queryClient = useQueryClient();
   return useMutation({
