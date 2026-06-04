@@ -90,7 +90,10 @@ export default function StaffProfileDialog({ staff, open, onClose, mode: initial
     }
     setSaving(true);
     try {
-      const { error } = await (supabase as any).from("staff_registrations").update({
+      const db = supabase as any;
+
+      // 1. Update staff_registrations (DB trigger will sync → profiles + auth.users)
+      const { error } = await db.from("staff_registrations").update({
         full_name: fullName.trim(),
         phone: phone || null,
         department: department || null,
@@ -98,15 +101,40 @@ export default function StaffProfileDialog({ staff, open, onClose, mode: initial
       }).eq("id", staff.id);
       if (error) throw error;
 
+      // 2. Also update profiles directly for instant UI feedback
+      //    (trigger handles it too, but this ensures React Query cache is warm)
+      const { data: poolMember } = await db
+        .from("admin_pool_members")
+        .select("user_id")
+        .eq("staff_registration_id", staff.id)
+        .maybeSingle();
+
+      if (poolMember?.user_id) {
+        await db.from("profiles")
+          .update({ full_name: fullName.trim() })
+          .eq("user_id", poolMember.user_id);
+      }
+
+      // 3. Audit log
       await supabase.from("onboarding_audit_log").insert({
         entity_type: "staff",
         entity_id: staff.id,
         action: "profile_updated",
         performed_by: user?.id || null,
-        details: { full_name: fullName, department, updated_fields: ["full_name", "phone", "department", "notes"] },
+        details: {
+          full_name: fullName.trim(),
+          department,
+          updated_fields: ["full_name", "phone", "department", "notes"],
+        },
       });
 
+      // 4. Invalidate all relevant caches
       queryClient.invalidateQueries({ queryKey: ["staff_registrations"] });
+      queryClient.invalidateQueries({ queryKey: ["admin_pool_members"] });
+      queryClient.invalidateQueries({ queryKey: ["profiles-facilitator"] });
+      // Force auth profile re-fetch so sidebar name updates immediately
+      await supabase.auth.refreshSession();
+
       toast.success("Staff profile updated successfully.");
       setMode("view");
     } catch (err: any) {
