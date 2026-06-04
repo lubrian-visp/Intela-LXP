@@ -149,9 +149,10 @@ export const domainPortals: Record<DomainKey, DomainPortalConfig> = {
       {
         title: "User Management",
         items: [
-          { label: "User Directory", icon: Users, path: "/admin/users", roles: ["super_admin"] },
-          { label: "Roles & Permissions", icon: Shield, path: "/admin/roles", roles: ["super_admin"] },
-          { label: "Staff Onboarding", icon: Briefcase, path: "/staff/onboarding", roles: ["super_admin"] },
+          { label: "User Directory",   icon: Users,     path: "/admin/users",       roles: ["super_admin"] },
+          { label: "Roles & Permissions", icon: Shield, path: "/admin/roles",       roles: ["super_admin"] },
+          { label: "Staff Onboarding", icon: Briefcase, path: "/staff/onboarding",  roles: ["super_admin"] },
+          { label: "Admin Staff Pool", icon: Users,     path: "/admin/staff-pool",  roles: ["super_admin"] },
         ],
       },
       {
@@ -194,11 +195,18 @@ export const domainPortals: Record<DomainKey, DomainPortalConfig> = {
       {
         title: "Infrastructure",
         items: [
-          { label: "Database Management", icon: Database, path: "/admin/settings?tab=database", roles: ["systems_admin"] },
-          { label: "Integrations", icon: Plug, path: "/admin/integrations", roles: ["systems_admin"] },
-          { label: "Security Settings", icon: Lock, path: "/admin/settings?tab=security", roles: ["systems_admin"] },
-          { label: "Feature Flags", icon: ToggleLeft, path: "/admin/settings?tab=flags", roles: ["systems_admin"] },
-          { label: "Design Manager", icon: Palette, path: "/admin/design-manager", roles: ["systems_admin"] },
+          { label: "Database Management", icon: Database,    path: "/admin/settings?tab=database", roles: ["systems_admin"] },
+          { label: "Integrations",        icon: Plug,        path: "/admin/integrations",          roles: ["systems_admin"] },
+          { label: "Security Settings",   icon: Lock,        path: "/admin/settings?tab=security", roles: ["systems_admin"] },
+          { label: "Feature Flags",       icon: ToggleLeft,  path: "/admin/settings?tab=flags",    roles: ["systems_admin"] },
+          { label: "Design Manager",      icon: Palette,     path: "/admin/design-manager",        roles: ["systems_admin"] },
+        ],
+      },
+      {
+        title: "Staff Management",
+        items: [
+          { label: "Staff Onboarding", icon: Briefcase, path: "/staff/onboarding",  roles: ["systems_admin"] },
+          { label: "Admin Staff Pool", icon: Users,     path: "/admin/staff-pool",  roles: ["systems_admin"] },
         ],
       },
 
@@ -282,10 +290,11 @@ export const domainPortals: Record<DomainKey, DomainPortalConfig> = {
         ],
       },
       {
-        title: "Staff",
+        title: "Staff Management",
         items: [
-          { label: "Staff Allocation", icon: Users, path: "/staff/onboarding", roles: ["operations"] },
-          { label: "Staff Compliance", icon: ShieldCheck, path: "/sponsor/compliance", roles: ["operations"] },
+          { label: "Admin Staff Pool", icon: Users,      path: "/admin/staff-pool",  roles: ["operations"] },
+          { label: "Staff Onboarding", icon: Briefcase,  path: "/staff/onboarding",  roles: ["operations"] },
+          { label: "Staff Compliance", icon: ShieldCheck,path: "/sponsor/compliance",roles: ["operations"] },
         ],
       },
 
@@ -347,6 +356,12 @@ export const domainPortals: Record<DomainKey, DomainPortalConfig> = {
           { label: "Learner Onboarding", icon: UserPlus, path: "/learner/onboarding", roles: ["programme_manager"] },
         ],
       },
+      {
+        title: "Staff Management",
+        items: [
+          { label: "Admin Staff Pool", icon: Users, path: "/admin/staff-pool", roles: ["programme_manager"] },
+        ],
+      },
 
       // ── Talent Manager ──
       {
@@ -360,9 +375,10 @@ export const domainPortals: Record<DomainKey, DomainPortalConfig> = {
       {
         title: "Workforce",
         items: [
-          { label: "Talent Pipeline", icon: TrendingUp, path: "/talent", roles: ["talent_manager"] },
-          { label: "Skills Gap Analysis", icon: PieChart, path: "/talent", roles: ["talent_manager"] },
-          { label: "Succession Planning", icon: Users, path: "/talent", roles: ["talent_manager"] },
+          { label: "Talent Pipeline",     icon: TrendingUp, path: "/talent",            roles: ["talent_manager"] },
+          { label: "Skills Gap Analysis", icon: PieChart,   path: "/talent",            roles: ["talent_manager"] },
+          { label: "Succession Planning", icon: Users,      path: "/talent",            roles: ["talent_manager"] },
+          { label: "Admin Staff Pool",    icon: Briefcase,  path: "/admin/staff-pool",  roles: ["talent_manager"] },
         ],
       },
       {
@@ -723,6 +739,7 @@ const pathToDomain: Record<string, DomainKey> = {
   "/dashboard": "technical",
   "/executive-dashboard": "technical",
   "/admin": "technical",
+  "/admin/staff-pool": "technical",
   "/systems-admin": "technical",
   // Business
   "/programme-manager": "business",
