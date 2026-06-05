@@ -29,6 +29,7 @@ import BulkLearnerImportDialog from "@/components/onboarding/BulkLearnerImportDi
 import ApproveEnrolDialog from "@/components/onboarding/ApproveEnrolDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { useAutoStartWorkflow } from "@/hooks/useWorkflowIntegration";
 import WorkflowStatusBadge from "@/components/workflow/WorkflowStatusBadge";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -146,6 +147,7 @@ export default function LearnerOnboarding() {
   const [ruleForm, setRuleForm] = useState({ rule_name: "", scope_type: "programme", scope_value: "", approver_role: "", step_order: 1 });
 
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: registrations, isLoading } = useRegistrations();
   const { data: auditLog } = useLearnerAuditLog();
@@ -568,8 +570,11 @@ export default function LearnerOnboarding() {
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => setViewTarget(r)}>
-                                    <Eye className="w-3.5 h-3.5 mr-2" /> View Learner Profile
+                                  <DropdownMenuItem onClick={() => {
+                                    const uid = (r as any).user_id || r.id;
+                                    navigate(`/learner/profile/${uid}`);
+                                  }}>
+                                    <Eye className="w-3.5 h-3.5 mr-2" /> View Full Profile
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => setChecklistRegistration(r)}>
                                     <Pencil className="w-3.5 h-3.5 mr-2" /> Edit Learner

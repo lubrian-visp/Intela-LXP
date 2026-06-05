@@ -108,7 +108,8 @@ const SponsorLinkingPage = lazy(() => import("@/pages/SponsorLinkingPage"));
 const MySettings = lazy(() => import("@/pages/MySettings"));
 const MyProfile = lazy(() => import("@/pages/MyProfile"));
 const CohortManagement = lazy(() => import("@/pages/CohortManagement"));
-const UserProfile = lazy(() => import("@/pages/UserProfile"));
+const UserProfile        = lazy(() => import("@/pages/UserProfile"));
+const LearnerProfilePage = lazy(() => import("@/pages/LearnerProfilePage"));
 const FontManager = lazy(() => import("@/pages/FontManager"));
 const WorkflowManager = lazy(() => import("@/pages/WorkflowManager"));
 const AssessmentAnalytics = lazy(() => import("@/pages/AssessmentAnalytics"));
@@ -314,6 +315,7 @@ const App = () => (
                           <Route path="/discussions" element={<Discussions />} />
                           <Route path="/announcements" element={<AnnouncementsManager />} />
                           <Route path="/profile/:userId" element={<UserProfile />} />
+                          <Route path="/learner/profile/:userId" element={<LearnerProfilePage />} />
                           <Route path="/my-settings" element={<MySettings />} />
                           <Route path="/my-profile" element={<MyProfile />} />
                           <Route path="/help" element={<HelpCenter />} />
