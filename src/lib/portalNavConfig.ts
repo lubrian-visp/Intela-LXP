@@ -480,16 +480,18 @@ export const domainPortals: Record<DomainKey, DomainPortalConfig> = {
       {
         title: "Assessments",
         items: [
-          { label: "Submission Review", icon: ClipboardCheck, path: "/assessments", roles: ["facilitator"] },
-          { label: "Grade Entry", icon: FileCheck, path: "/assessments", roles: ["facilitator"] },
-          { label: "Gradebook", icon: GraduationCap, path: "/gradebook", roles: ["facilitator"] },
+          // Fixed: was both pointing to /assessments (admin bulk page).
+          // Facilitator → Gradebook for submission review & grade entry
+          { label: "Gradebook & Grading", icon: GraduationCap, path: "/gradebook",    roles: ["facilitator"] },
+          { label: "Attendance Compliance",icon: CalendarCheck, path: "/attendance-compliance", roles: ["facilitator"] },
         ],
       },
       {
         title: "Collaboration",
         items: [
-          { label: "Discussion Forums", icon: MessagesSquare, path: "/discussions", roles: ["facilitator"] },
-          { label: "Session Room", icon: Video, path: "/sessions", roles: ["facilitator"] },
+          { label: "Announcements",    icon: Bell,          path: "/announcements",    roles: ["facilitator"] },
+          { label: "Discussion Forums",icon: MessagesSquare, path: "/discussions",      roles: ["facilitator"] },
+          { label: "Session Room",     icon: Video,         path: "/sessions",          roles: ["facilitator"] },
         ],
       },
       {
@@ -503,39 +505,34 @@ export const domainPortals: Record<DomainKey, DomainPortalConfig> = {
       {
         title: "Overview",
         items: [
-          { label: "My Dashboard", icon: LayoutDashboard, path: "__DASHBOARD__", roles: ["assessor"] },
-          { label: "Calendar", icon: Calendar, path: "/calendar", roles: ["assessor"] },
-          { label: "Upcoming Sessions", icon: Calendar, path: "/learner/sessions", roles: ["assessor"] },
-          { label: "My Cohorts", icon: Users, path: "/cohorts", roles: ["assessor"] },
+          { label: "My Dashboard",      icon: LayoutDashboard, path: "__DASHBOARD__",   roles: ["assessor"] },
+          { label: "Calendar",          icon: Calendar,        path: "/calendar",        roles: ["assessor"] },
+          { label: "Upcoming Sessions", icon: Video,           path: "/sessions",        roles: ["assessor"] },
         ],
       },
       {
-        title: "Cohort Management",
+        title: "Grading",
         items: [
-          { label: "Cohort Management", icon: Users, path: "/cohort-management", roles: ["assessor"] },
-          { label: "Learner Engagement", icon: TrendingUp, path: "/facilitator/engagement", roles: ["assessor"] },
-          { label: "Attendance Tracking", icon: CheckSquare, path: "/facilitator/learner-progress", roles: ["assessor"] },
+          // Fixed: Assessment Queue points to /assessor/queue (was correct already)
+          { label: "Assessment Queue",  icon: FileCheck,     path: "/assessor/queue",          roles: ["assessor"] },
+          { label: "Gradebook",         icon: GraduationCap, path: "/gradebook",               roles: ["assessor"] },
+          { label: "Assessment History",icon: History,       path: "/assessor/history",        roles: ["assessor"] },
         ],
       },
       {
-        title: "Assessments",
+        title: "Learners",
         items: [
-          { label: "Assessment Queue", icon: FileCheck, path: "/assessor/queue", roles: ["assessor"] },
-          { label: "Gradebook", icon: GraduationCap, path: "/gradebook", roles: ["assessor"] },
-        ],
-      },
-      {
-        title: "Review Section",
-        items: [
-          { label: "Assessment History", icon: History, path: "/assessor/history", roles: ["assessor"] },
-          { label: "Rubric Library", icon: BookOpen, path: "/assessments", roles: ["assessor"] },
+          // Assessor can view learner progress and engagement (shared pages from facilitator)
+          { label: "Learner Progress",  icon: TrendingUp,    path: "/facilitator/learner-progress", roles: ["assessor"] },
+          { label: "Learner Engagement",icon: Heart,         path: "/facilitator/engagement",       roles: ["assessor"] },
+          { label: "Cohort Management", icon: Users,         path: "/cohort-management",            roles: ["assessor"] },
         ],
       },
       {
         title: "Reports",
         items: [
-          { label: "Assessor Report", icon: FileBarChart, path: "/assessor/report", roles: ["assessor"] },
-          { label: "Report Templates", icon: FileText, path: "/assessor/report-templates", roles: ["assessor", "super_admin", "systems_admin"] },
+          { label: "Assessor Report",   icon: FileBarChart, path: "/assessor/report",          roles: ["assessor"] },
+          { label: "Report Templates",  icon: FileText,     path: "/assessor/report-templates", roles: ["assessor", "super_admin", "systems_admin"] },
         ],
       },
 
@@ -607,48 +604,49 @@ export const domainPortals: Record<DomainKey, DomainPortalConfig> = {
       {
         title: "My Learning",
         items: [
-          { label: "Dashboard", icon: LayoutDashboard, path: "__DASHBOARD__", roles: ["learner"] },
-          { label: "My Programmes", icon: BookOpen, path: "/learner/programmes", roles: ["learner"] },
-          { label: "My Sessions", icon: Calendar, path: "/learner/sessions", roles: ["learner"] },
+          { label: "Dashboard",      icon: LayoutDashboard, path: "__DASHBOARD__",        roles: ["learner"] },
+          { label: "My Programmes",  icon: BookOpen,         path: "/learner/programmes",  roles: ["learner"] },
+          { label: "My Sessions",    icon: Video,            path: "/learner/sessions",    roles: ["learner"] },
+        ],
+      },
+      {
+        title: "Assessments & Progress",
+        items: [
+          { label: "My Assessments",        icon: FileCheck,    path: "/learner/assessments", roles: ["learner"] },
+          { label: "My Grades",             icon: GraduationCap,path: "/learner/grades",      roles: ["learner"] },
+          { label: "Portfolio of Evidence", icon: FolderKanban, path: "/portfolio",            roles: ["learner"] },
+          { label: "Transcript",            icon: FileText,     path: "/transcript",           roles: ["learner"] },
+        ],
+      },
+      {
+        title: "Credentials & Badges",
+        items: [
+          { label: "My Credentials", icon: Award,  path: "/credentials",  roles: ["learner"] },
+          { label: "Achievements",   icon: Trophy, path: "/achievements", roles: ["learner"] },
         ],
       },
       {
         title: "Discover",
         items: [
-          { label: "Content Library", icon: Globe, path: "/content-library", roles: ["learner"] },
-          { label: "Skills Profile", icon: Target, path: "/skills", roles: ["learner"] },
-          { label: "Contribute Content", icon: Upload, path: "/content-contributions", roles: ["learner"] },
+          { label: "Content Library",   icon: Globe,   path: "/content-library",       roles: ["learner"] },
+          { label: "Skills Profile",    icon: Target,  path: "/skills",                roles: ["learner"] },
+          { label: "Contribute Content",icon: Upload,  path: "/content-contributions", roles: ["learner"] },
         ],
       },
       {
-        title: "Assessments",
+        title: "Community",
         items: [
-          { label: "My Assessments", icon: FileCheck, path: "/learner/assessments", roles: ["learner"] },
-          { label: "My Grades", icon: GraduationCap, path: "/learner/grades", roles: ["learner"] },
-          { label: "Portfolio of Evidence", icon: FolderKanban, path: "/portfolio", roles: ["learner"] },
-          { label: "Transcript", icon: FileText, path: "/transcript", roles: ["learner"] },
-        ],
-      },
-      {
-        title: "Resources",
-        items: [
-          { label: "Calendar", icon: Calendar, path: "/calendar", roles: ["learner"] },
-          { label: "Announcements", icon: Bell, path: "/announcements", roles: ["learner"] },
-          { label: "Discussion Forums", icon: MessagesSquare, path: "/discussions", roles: ["learner"] },
-        ],
-      },
-      {
-        title: "Credentials",
-        items: [
-          { label: "My Credentials", icon: Award, path: "/credentials", roles: ["learner"] },
-          { label: "Achievements",   icon: Trophy, path: "/achievements", roles: ["learner"] },
+          // Fix: was /announcements (admin AnnouncementsManager) — must be /learner/announcements
+          { label: "Announcements",    icon: Bell,          path: "/learner/announcements", roles: ["learner"] },
+          { label: "Discussion Forums",icon: MessagesSquare,path: "/discussions",            roles: ["learner"] },
+          { label: "Calendar",         icon: Calendar,      path: "/calendar",               roles: ["learner"] },
         ],
       },
       {
         title: "Account",
         items: [
-          { label: "My Profile",        icon: User,     path: "/learner/profile/me", roles: ["learner"] },
-          { label: "My Settings",       icon: Settings, path: "/my-settings",        roles: ["learner"] },
+          { label: "My Profile",  icon: User,     path: "/learner/profile/me", roles: ["learner"] },
+          { label: "My Settings", icon: Settings, path: "/my-settings",        roles: ["learner"] },
         ],
       },
 

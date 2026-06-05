@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { BookOpen, Clock, ChevronRight, Search, GraduationCap, Layers, Award, Calendar } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useEnrolments, useRealtimeSync } from "@/hooks/useCoreData";
@@ -22,6 +23,7 @@ const statusConfig: Record<string, { label: string; color: string }> = {
 };
 
 export default function LearnerProgrammes() {
+  usePageTitle("My Programmes", "Learner Portal");
   const { user } = useAuth();
   const { data: rawEnrolments = [], isLoading } = useEnrolments({ learnerId: user?.id });
 

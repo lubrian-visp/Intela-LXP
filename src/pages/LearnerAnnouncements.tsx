@@ -1,4 +1,5 @@
 import { Bell, Clock, AlertCircle } from "lucide-react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { FadeIn } from "@/components/animations/MotionWrappers";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,6 +17,7 @@ const priorityStyle: Record<string, { dot: string; border: string }> = {
 };
 
 export default function LearnerAnnouncements() {
+  usePageTitle("Announcements", "Learner Portal");
   const { user } = useAuth();
   const qc = useQueryClient();
 

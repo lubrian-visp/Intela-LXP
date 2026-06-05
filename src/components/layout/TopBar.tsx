@@ -1,9 +1,11 @@
 import { Search, ChevronDown, Moon, Sun, LogOut, Settings, HelpCircle } from "lucide-react";
 import NotificationBell from "@/components/layout/NotificationBell";
+import RoleSwitcher from "@/components/layout/RoleSwitcher";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
+import { usePortalSwitcher } from "@/hooks/usePortalSwitcher";
 
 const pageTitles: Record<string, string> = {
   "/": "Admin Dashboard",
@@ -40,14 +42,17 @@ export default function TopBar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, roles, signOut } = useAuth();
+  const { overrideRole, isSelfSwitch } = usePortalSwitcher();
   const title = pageTitles[location.pathname] || "Dashboard";
 
   const initials = profile?.full_name
     ? profile.full_name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2)
     : "U";
 
-  const roleBadge = roles.length > 0
-    ? roles[0].replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())
+  // Show the currently active role in the user badge (respects role switcher)
+  const activeRole = (isSelfSwitch && overrideRole) ? overrideRole : (roles[0] ?? null);
+  const roleBadge  = activeRole
+    ? activeRole.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())
     : "User";
 
   // Dark mode
@@ -148,6 +153,9 @@ export default function TopBar() {
 
         {/* Notifications */}
         <NotificationBell />
+
+        {/* Role switcher — only visible when user holds multiple roles */}
+        <RoleSwitcher />
 
         <div className="h-6 w-px bg-border hidden sm:block" />
 

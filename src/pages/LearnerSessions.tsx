@@ -1,4 +1,5 @@
 import { Calendar, Clock, Video } from "lucide-react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { FadeIn } from "@/components/animations/MotionWrappers";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
@@ -9,6 +10,7 @@ import { format, isPast, isFuture } from "date-fns";
 import { cn } from "@/lib/utils";
 
 export default function LearnerSessions() {
+  usePageTitle("My Sessions", "Learner Portal");
   const { user } = useAuth();
   useRealtimeSync(["training_sessions", "session_attendance", "notifications"]);
 

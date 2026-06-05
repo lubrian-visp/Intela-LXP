@@ -3,7 +3,7 @@ import {
   FlaskConical, Play, Trash2, RefreshCw, CheckCircle2,
   AlertTriangle, Copy, Check, ChevronDown, ChevronRight,
   Users, BookOpen, ClipboardCheck, Award, Bell, Calendar,
-  MessageSquare, BarChart3, Loader2, Info,
+  MessageSquare, BarChart3, Loader2, Info, FileCheck, LogIn,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -58,17 +58,29 @@ function CopyButton({ text, label }: { text: string; label: string }) {
 }
 
 const SEED_SUMMARY = [
-  { icon: Users,          label: "Test learner account",     detail: "Full profile + auth + learner role" },
+  { icon: Users,          label: "5 test users",              detail: "3 Learners · 1 Facilitator · 1 Assessor" },
   { icon: BookOpen,       label: "Programme + 2 modules",     detail: "4 content blocks, active status" },
-  { icon: ClipboardCheck, label: "3 assessments",             detail: "Formative, Summative (with rubric), Journal" },
-  { icon: CheckCircle2,   label: "2 submissions",             detail: "1 graded (24/30 with rubric scores), 1 pending" },
-  { icon: Award,          label: "1 credential",              detail: "Data Analytics badge, issued today" },
-  { icon: Bell,           label: "3 notifications",           detail: "Graded, announcement, deadline reminder" },
-  { icon: Calendar,       label: "2 training sessions",       detail: "Upcoming (2 days + 5 days out)" },
-  { icon: MessageSquare,  label: "2 discussion threads",      detail: "With posts in Module 1" },
-  { icon: BarChart3,      label: "Study streak data",         detail: "3-day streak, 120 min/week goal" },
-  { icon: Users,          label: "4 peer enrolments",         detail: "For cohort comparison widget (30–85%)" },
+  { icon: ClipboardCheck, label: "4 assessments",             detail: "Auto-graded quiz, formative, summative (moderated), journal" },
+  { icon: BarChart3,      label: "6 quiz questions",          detail: "5 MCQ/T-F (auto-graded) + 1 short answer (manual)" },
+  { icon: CheckCircle2,   label: "5 submissions",             detail: "Submitted, Graded, Moderation, Resubmit, Auto-graded" },
+  { icon: FileCheck,      label: "8 activity grades",         detail: "Facilitator-recorded: participation, workshop, presentation" },
+  { icon: AlertTriangle,  label: "Moderation pipeline",       detail: "1 item pending QA review by moderator" },
+  { icon: Award,          label: "3 badges + 1 credential",   detail: "First Submission, High Achiever, Consistent Learner" },
+  { icon: Bell,           label: "15 notifications",          detail: "Per-role: grades, deadlines, submissions, alerts" },
+  { icon: Calendar,       label: "4 training sessions",       detail: "3 upcoming + 1 completed" },
+  { icon: MessageSquare,  label: "3 discussion threads",      detail: "7 posts across all roles" },
+  { icon: Users,          label: "Streaks + study logs",      detail: "Alex 4d · Priya 8d · Sipho 1d" },
 ];
+
+const ROLE_COLORS: Record<string, string> = {
+  learner:     "bg-pink-500/10 text-pink-600 border-pink-500/20",
+  facilitator: "bg-indigo-500/10 text-indigo-600 border-indigo-500/20",
+  assessor:    "bg-green-500/10 text-green-600 border-green-500/20",
+};
+
+const ROLE_EMOJIS: Record<string, string> = {
+  learner: "📚", facilitator: "🎓", assessor: "✅",
+};
 
 export default function TestDataManager() {
   const { user } = useAuth();
@@ -97,7 +109,7 @@ export default function TestDataManager() {
       qc.invalidateQueries({ queryKey: ["test_data_sessions"] });
       toast.success(`✅ ${result.records_created} test records created!`);
     } catch (err: any) {
-      toast.error("Seed failed", { description: err.message });
+      toast.error("Seed failed", { description: err.message, duration: 10000 });
     } finally {
       setSeeding(false);
     }
@@ -196,42 +208,77 @@ export default function TestDataManager() {
 
       {/* Last seed result */}
       {lastResult && (
-        <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-5 space-y-4">
+        <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-5 space-y-5">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-5 h-5 text-green-500" />
-            <h3 className="text-sm font-semibold text-foreground">Test data seeded successfully</h3>
-            <span className="ml-auto text-[11px] text-muted-foreground">
-              {lastResult.records_created} records created
-            </span>
+            <h3 className="text-sm font-semibold text-foreground">Seed complete — {lastResult.records_created} records created</h3>
           </div>
 
-          {/* Login credentials */}
-          <div className="rounded-xl bg-card border border-border/50 p-4 space-y-3">
-            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
-              Test Learner Login Credentials
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <CopyButton text={lastResult.learner_email}    label="Email" />
-              <CopyButton text={lastResult.learner_password} label="Password" />
-            </div>
-            <div className="flex items-start gap-2 text-[11px] text-muted-foreground">
-              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-              Sign out from Super Admin, then sign in with these credentials to test the learner dashboard.
-            </div>
+          {/* Shared password */}
+          <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-card border border-border/50">
+            <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+            <p className="text-[11px] text-muted-foreground flex-1">All accounts share the same password:</p>
+            <CopyButton text={lastResult.password ?? "Test@Intela2026!"} label="Password" />
           </div>
 
-          {/* Summary */}
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+          {/* Per-role login cards */}
+          <div className="space-y-2">
+            <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Test Accounts</p>
+            {Object.entries(lastResult.users ?? {}).map(([key, u]: [string, any]) => {
+              const roleKey = u.role as string;
+              const colorCls = ROLE_COLORS[roleKey] ?? "bg-secondary text-foreground border-border";
+              return (
+                <div key={key} className="rounded-xl bg-card border border-border/50 p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className={cn("text-xs font-semibold px-2 py-0.5 rounded-full border capitalize", colorCls)}>
+                      {ROLE_EMOJIS[roleKey]} {u.role}
+                    </span>
+                    <span className="text-xs font-semibold text-foreground">{u.name}</span>
+                    {u.progress && (
+                      <span className="ml-auto text-[10px] text-muted-foreground">{u.progress}</span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2 items-center">
+                    <CopyButton text={u.email} label="Email" />
+                    <CopyButton text={lastResult.password ?? "Test@Intela2026!"} label="Password" />
+                  </div>
+                  {u.note && (
+                    <p className="text-[10px] text-muted-foreground border-t border-border/40 pt-1.5">{u.note}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Test scenarios */}
+          {lastResult.scenarios && (
+            <div className="space-y-1.5">
+              <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <LogIn className="w-3 h-3" /> Testing Scenarios
+              </p>
+              <div className="rounded-xl bg-card border border-border/50 divide-y divide-border/40">
+                {lastResult.scenarios.map((s: string, i: number) => (
+                  <div key={i} className="px-4 py-2 text-[11px] text-muted-foreground">
+                    <span className="font-medium text-foreground">{s.split("→")[0]?.trim()}</span>
+                    {s.includes("→") && <span> → {s.split("→").slice(1).join("→").trim()}</span>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Summary counts */}
+          <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
             {Object.entries(lastResult.summary ?? {}).map(([k, v]) => (
-              <div key={k} className="rounded-lg bg-card border border-border/30 px-3 py-2 text-center">
+              <div key={k} className="rounded-lg bg-card border border-border/30 px-2 py-2 text-center">
                 <p className="text-[13px] font-bold text-foreground">{String(v)}</p>
-                <p className="text-[9px] text-muted-foreground capitalize">{k.replace(/_/g," ")}</p>
+                <p className="text-[8px] text-muted-foreground capitalize leading-tight mt-0.5">{k.replace(/_/g," ")}</p>
               </div>
             ))}
           </div>
 
-          <p className="text-[11px] text-muted-foreground">
-            Session ID: <code className="bg-secondary px-1 rounded">{lastResult.session_id}</code>
+          <p className="text-[10px] text-muted-foreground">
+            Session: <code className="bg-secondary px-1 rounded text-[9px]">{lastResult.session_id}</code>
           </p>
         </div>
       )}

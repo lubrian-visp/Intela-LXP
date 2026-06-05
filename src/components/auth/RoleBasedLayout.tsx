@@ -42,20 +42,34 @@ const dashboardPathToRole: Record<string, AppRole> = {
 };
 
 export default function RoleBasedLayout({ children }: { children: ReactNode }) {
-  const { roles, loading, rolesLoading } = useAuth();
-  const { overrideDomain, overrideRole } = usePortalSwitcher();
+  const { roles, loading } = useAuth();
+  const { overrideDomain, overrideRole, isSelfSwitch } = usePortalSwitcher();
   const location = useLocation();
 
   // Instant permission invalidation: refreshes roles in real-time when changed by admin
   useRealtimeRoleSync();
 
-  // Only block on the very first auth bootstrap (no session yet decided).
-  // Once we have either a session or roles (cached), render the shell immediately —
-  // individual data hooks will manage their own loading states.
   if (loading) return null;
 
-  // If admin has overridden to a specific role
-  if (overrideDomain && overrideRole) {
+  // ── Self-switch: user chose their own role via the RoleSwitcher in TopBar ──
+  // Validate the stored role actually belongs to this user (security check).
+  if (isSelfSwitch && overrideRole && overrideDomain) {
+    const typedRoles = roles as AppRole[];
+    const userOwnsRole = typedRoles.includes(overrideRole);
+    if (userOwnsRole) {
+      const config = domainPortals[overrideDomain];
+      const personalizedConfig = getPersonalizedPortalConfig(config, [overrideRole]);
+      return (
+        <PortalLayout config={personalizedConfig} userRoles={[overrideRole]}>
+          {children}
+        </PortalLayout>
+      );
+    }
+    // Role no longer belongs to user (revoked) — fall through to normal resolution
+  }
+
+  // ── SA impersonation: admin overrode to a specific role ──
+  if (!isSelfSwitch && overrideDomain && overrideRole) {
     const config = domainPortals[overrideDomain];
     const personalizedConfig = getPersonalizedPortalConfig(config, [overrideRole]);
     return (

@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
-import { Heart, Users, TrendingUp, TrendingDown, AlertTriangle, Search, BarChart3, Clock, CheckCircle2 } from "lucide-react";
+import { Heart, Users, TrendingUp, TrendingDown, AlertTriangle, Search, BarChart3, Clock, CheckCircle2, ChevronRight } from "lucide-react";
 import { FadeIn } from "@/components/animations/MotionWrappers";
+import { useNavigate } from "react-router-dom";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
@@ -16,6 +18,8 @@ function getEngagementLevel(progress: number, submissionCount: number) {
 }
 
 export default function FacilitatorEngagement() {
+  usePageTitle("Learner Engagement", "Facilitator Portal");
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [cohortFilter, setCohortFilter] = useState<string>("all");
   const { data: cohorts = [] } = useCohorts();
@@ -137,13 +141,22 @@ export default function FacilitatorEngagement() {
                 <th className="text-left px-5 py-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Progress</th>
                 <th className="text-left px-5 py-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Submissions</th>
                 <th className="text-left px-5 py-3 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Engagement</th>
+                <th className="px-5 py-3" aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
               {searchFiltered.map(l => (
-                <tr key={l.id} className="border-b border-border/50 hover:bg-secondary/20 transition-colors">
+                <tr
+                  key={l.id}
+                  className="border-b border-border/50 hover:bg-secondary/20 transition-colors cursor-pointer group"
+                  onClick={() => navigate(`/learner/profile/${l.learnerId}`)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={k => k.key === "Enter" && navigate(`/learner/profile/${l.learnerId}`)}
+                  aria-label={`View profile for ${l.name}`}
+                >
                   <td className="px-5 py-3">
-                    <p className="text-sm font-medium text-foreground">{l.name}</p>
+                    <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{l.name}</p>
                     <p className="text-[10px] text-muted-foreground">{l.cohort}</p>
                   </td>
                   <td className="px-5 py-3 text-xs text-muted-foreground">{l.programme}</td>
@@ -155,10 +168,13 @@ export default function FacilitatorEngagement() {
                   </td>
                   <td className="px-5 py-3 text-xs text-foreground font-medium">{l.submissionCount}</td>
                   <td className="px-5 py-3">
-                    <span className={cn("inline-flex items-center gap-1.5 text-[11px] font-medium", l.engagement.color)}>
-                      <span className={cn("w-1.5 h-1.5 rounded-full", l.engagement.bg)} />
+                    <span className={cn("inline-flex items-center gap-1.5 text-[11px] font-medium px-2 py-0.5 rounded-full", l.engagement.color, l.engagement.label === "Low" ? "bg-destructive/10" : l.engagement.label === "Medium" ? "bg-warning/10" : "bg-success/10")}>
+                      <span className={cn("w-1.5 h-1.5 rounded-full shrink-0", l.engagement.bg)} />
                       {l.engagement.label}
                     </span>
+                  </td>
+                  <td className="px-3 py-3">
+                    <ChevronRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                   </td>
                 </tr>
               ))}

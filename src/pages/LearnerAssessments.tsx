@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubmissions, useRealtimeSync, useEnrolments, useAssessments } from "@/hooks/useCoreData";
 import { FadeIn } from "@/components/animations/MotionWrappers";
@@ -14,7 +15,7 @@ import { useRecordStudyActivity } from "@/hooks/useLearnerStreak";
 import { useEffect } from "react";
 import {
   FileCheck, Clock, CheckCircle2, AlertCircle, BarChart3,
-  Filter, XCircle, Target, Send, Zap,
+  Filter, XCircle, Target, Send, Zap, History, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
@@ -43,13 +44,15 @@ const CATEGORY_BADGE: Record<string, string> = {
 const QUIZ_TYPES = ["formative", "summative", "quiz", "knowledge_check", "pre_test"];
 
 export default function LearnerAssessments() {
+  usePageTitle("My Assessments", "Learner Portal");
   const { user } = useAuth();
   const navigate = useNavigate();
   const recordActivity = useRecordStudyActivity();
-  const [scopeFilter, setScopeFilter]     = useState<string>("all");
-  const [tab, setTab]                     = useState("progress");
-  const [submitAssessment, setSubmitAssessment] = useState<any>(null);
+  const [scopeFilter, setScopeFilter]          = useState<string>("all");
+  const [tab, setTab]                          = useState("progress");
+  const [submitAssessment, setSubmitAssessment]  = useState<any>(null);
   const [journalAssessment, setJournalAssessment] = useState<any>(null);
+  const [expandedHistory, setExpandedHistory]    = useState<Set<string>>(new Set());
 
   // Record assessment page visit as study activity
   useEffect(() => {
@@ -232,6 +235,17 @@ export default function LearnerAssessments() {
                       </div>
                       <div className="flex flex-col items-end gap-1.5 shrink-0">
                         <Badge className={cn("text-[9px]", st.bg, st.color, "border-0")}>{st.label}</Badge>
+                        {/* View Results — for auto-graded (system-marked) attempts */}
+                        {["graded", "assessed", "passed"].includes(ap.status) && ap.submissions.some((s: any) => s.feedback?.startsWith("Auto-graded")) && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-6 text-[10px] gap-1 border-primary/30 text-primary"
+                            onClick={() => navigate(`/quiz/${ap.id}?enrolmentId=${enrolments[0]?.id}&review=${ap.submissions[0]?.id}`)}
+                          >
+                            <History className="w-2.5 h-2.5" /> Results
+                          </Button>
+                        )}
                         {canResubmit && (
                           <Button
                             size="sm"
@@ -242,8 +256,53 @@ export default function LearnerAssessments() {
                             <Send className="w-2.5 h-2.5" /> Resubmit
                           </Button>
                         )}
+                        {/* Attempt history toggle */}
+                        {ap.submissions.length > 1 && (
+                          <button
+                            className="text-[9px] text-muted-foreground hover:text-foreground flex items-center gap-0.5 transition-colors"
+                            onClick={() => setExpandedHistory(prev => {
+                              const next = new Set(prev);
+                              next.has(ap.id) ? next.delete(ap.id) : next.add(ap.id);
+                              return next;
+                            })}
+                            aria-expanded={expandedHistory.has(ap.id)}
+                          >
+                            {ap.submissions.length} attempts
+                            {expandedHistory.has(ap.id) ? <ChevronUp className="w-2.5 h-2.5" /> : <ChevronDown className="w-2.5 h-2.5" />}
+                          </button>
+                        )}
                       </div>
                     </div>
+
+                    {/* Attempt History — expanded list of all submissions */}
+                    {expandedHistory.has(ap.id) && (
+                      <div className="mt-3 pt-3 border-t border-border/40 space-y-1.5">
+                        <p className="text-[9px] font-semibold text-muted-foreground uppercase tracking-wider px-1">Attempt History</p>
+                        {ap.submissions
+                          .sort((a: any, b: any) => new Date(b.submitted_at || b.created_at).getTime() - new Date(a.submitted_at || a.created_at).getTime())
+                          .map((s: any, idx: number) => {
+                            const isAutoGraded = s.feedback?.startsWith("Auto-graded");
+                            const sStatus = statusStyles[s.status] ?? statusStyles.pending;
+                            return (
+                              <div key={s.id} className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-secondary/30">
+                                <span className="text-[9px] text-muted-foreground w-16 shrink-0">
+                                  Attempt {ap.submissions.length - idx}
+                                </span>
+                                <span className="text-[10px] font-medium text-foreground flex-1">
+                                  {s.score != null ? `${s.score}/${ap.assessment?.max_score ?? 100}` : "—"}
+                                  {isAutoGraded && (
+                                    <span className="ml-1.5 text-[8px] px-1 py-0.5 rounded bg-primary/10 text-primary font-medium">⚡ Auto-graded</span>
+                                  )}
+                                </span>
+                                <span className="text-[9px] text-muted-foreground">
+                                  {s.submitted_at ? format(new Date(s.submitted_at), "d MMM yy") : "—"}
+                                </span>
+                                <Badge className={cn("text-[8px] border-0", sStatus.bg, sStatus.color)}>{sStatus.label}</Badge>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -279,7 +338,7 @@ export default function LearnerAssessments() {
                       {QUIZ_TYPES.includes(a.assessment_type ?? "") ? (
                         <Button size="sm" className="gap-1.5 h-7 text-xs bg-primary"
                           aria-label={`Take online quiz: ${a.title}`}
-                          onClick={() => navigate(`/quiz/${a.id}`)}>
+                          onClick={() => navigate(`/quiz/${a.id}?enrolmentId=${enrolments[0]?.id ?? ""}`)}>
                           <Zap className="w-3 h-3" /> Take Quiz
                         </Button>
                       ) : a.assessment_type === "reflection_journal" ? (

@@ -1,14 +1,19 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import EnhancedQuizTaker from "@/components/quiz/EnhancedQuizTaker";
+import { usePageTitle } from "@/hooks/usePageTitle";
 
 export default function QuizPage() {
-  const { assessmentId } = useParams<{ assessmentId: string }>();
-  const navigate = useNavigate();
+  const { assessmentId }    = useParams<{ assessmentId: string }>();
+  const [searchParams]      = useSearchParams();
+  const navigate            = useNavigate();
+
+  // enrolmentId passed from LearnerAssessments via ?enrolmentId=xxx
+  const enrolmentId = searchParams.get("enrolmentId") ?? undefined;
 
   const { data: assessment, isLoading } = useQuery({
     queryKey: ["assessment-detail", assessmentId],
@@ -23,6 +28,8 @@ export default function QuizPage() {
       return data;
     },
   });
+
+  usePageTitle(assessment?.title ?? "Assessment", "Learner Portal");
 
   if (isLoading) {
     return <Skeleton className="h-96 rounded-xl" />;
@@ -45,14 +52,15 @@ export default function QuizPage() {
         onClick={() => navigate(-1)}
         className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
       >
-        <ArrowLeft className="w-3 h-3" /> Back
+        <ArrowLeft className="w-3 h-3" /> Back to My Assessments
       </button>
 
       <EnhancedQuizTaker
         assessmentId={assessment.id}
         assessmentTitle={assessment.title}
+        enrolmentId={enrolmentId}        {/* ← now properly wired */}
         onComplete={() => {}}
-        onClose={() => navigate(-1)}
+        onClose={() => navigate("/learner/assessments")}
       />
     </div>
   );

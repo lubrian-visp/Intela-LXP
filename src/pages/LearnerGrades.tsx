@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Link } from "react-router-dom";
 import { GraduationCap, Search, Trophy, TrendingUp, FileText, ShieldCheck, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import RubricBreakdown from "@/components/learner/RubricBreakdown";
@@ -33,6 +34,7 @@ import { cn } from "@/lib/utils";
  * authenticated learner via RLS (learner_id = auth.uid()).
  */
 export default function LearnerGrades() {
+  usePageTitle("My Grades", "Learner Portal");
   const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [programmeFilter, setProgrammeFilter] = useState<string>("all");

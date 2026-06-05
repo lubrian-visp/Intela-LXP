@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { useLearnerQuizQuestions, useSubmitQuiz, type QuizQuestion } from "@/hooks/useQuizBuilder";
+import { useLearnerQuizQuestions, useSubmitQuiz, useQuizResponses, type QuizQuestion } from "@/hooks/useQuizBuilder";
 import { useQuizSections, samplePoolQuestions } from "@/hooks/useQuizSections";
 import { useAssessmentSettings } from "@/hooks/useAssessmentSettings";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,12 +51,14 @@ export default function EnhancedQuizTaker({
   const { data: sections = [] } = useQuizSections(assessmentId);
   const { data: settings } = useAssessmentSettings(assessmentId);
   const submitQuiz = useSubmitQuiz();
+  // Fetch per-question responses after submission (for result breakdown)
+  const { data: quizResponses = [] } = useQuizResponses(result?.submissionId);
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, { selected_option_id?: string; text_answer?: string }>>({});
   const [flaggedQuestions, setFlaggedQuestions] = useState<Set<string>>(new Set());
   const [submitted, setSubmitted] = useState(false);
-  const [result, setResult] = useState<{ score: number; earnedPoints: number; totalPoints: number } | null>(null);
+  const [result, setResult] = useState<{ score: number; earnedPoints: number; totalPoints: number; submissionId?: string; hasShortAnswer?: boolean } | null>(null);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const [showAccessCodeDialog, setShowAccessCodeDialog] = useState(false);
   const [accessCodeInput, setAccessCodeInput] = useState("");
@@ -208,7 +210,10 @@ export default function EnhancedQuizTaker({
           .eq("id", (res as any).submissionId);
       } catch { /* non-critical */ }
 
-      setResult(res);
+      const hasShortAnswer = input.questions.some(q =>
+        q.question_type === "short_answer" || q.question_type === "essay"
+      );
+      setResult({ ...res, hasShortAnswer });
       setSubmitted(true);
       onComplete?.(res.score);
       // Clear auto-save and pool cache
@@ -284,36 +289,183 @@ export default function EnhancedQuizTaker({
     );
   }
 
-  // Result screen
+  // ── Result screen — full question-by-question breakdown ─────────────────────
   if (submitted && result) {
-    const showAnswers = settings?.show_correct_answers ?? true;
+    const showAnswers    = settings?.show_correct_answers ?? true;
+    const passed         = result.score >= 70;
+    const needsWork      = result.score >= 50 && result.score < 70;
+    const outcomeLabel   = passed ? "Passed" : needsWork ? "Needs Improvement" : "Not Yet Competent";
+    const outcomeColor   = passed ? "text-success" : needsWork ? "text-warning" : "text-destructive";
+    const outcomeBg      = passed ? "bg-success/10" : needsWork ? "bg-warning/10" : "bg-destructive/10";
+    const outcomeBorder  = passed ? "border-success" : needsWork ? "border-warning" : "border-destructive";
+
+    // Build a map of responses keyed by question_id
+    const responseMap: Record<string, any> = {};
+    (quizResponses as any[]).forEach(r => { responseMap[r.question_id] = r; });
+
+    // Build a map of question options keyed by option id (for showing selected/correct labels)
+    const optionMap: Record<string, any> = {};
+    rawQuestions.forEach(q => {
+      (q.options ?? []).forEach((o: any) => { optionMap[o.id] = o; });
+    });
+
+    // Only show questions that were actually answered (sampled set)
+    const answeredQuestions = rawQuestions.filter(q => responseMap[q.id]);
+
     return (
-      <div className="max-w-lg mx-auto text-center py-12 space-y-6">
-        <div className={cn(
-          "w-20 h-20 mx-auto rounded-full flex items-center justify-center",
-          result.score >= 70 ? "bg-success/10" : result.score >= 50 ? "bg-warning/10" : "bg-destructive/10"
-        )}>
-          <Trophy className={cn(
-            "w-10 h-10",
-            result.score >= 70 ? "text-success" : result.score >= 50 ? "text-warning" : "text-destructive"
-          )} />
+      <div className="max-w-2xl mx-auto space-y-6 py-4">
+        {/* ── Score summary card ── */}
+        <div className={cn("rounded-2xl border p-6 text-center space-y-3", outcomeBg, outcomeBorder)}>
+          <div className={cn("w-16 h-16 mx-auto rounded-full flex items-center justify-center", outcomeBg)}>
+            <Trophy className={cn("w-8 h-8", outcomeColor)} />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-foreground">Assessment Complete</h2>
+            <p className="text-sm text-muted-foreground">{assessmentTitle}</p>
+          </div>
+          <div>
+            <p className={cn("text-5xl font-bold", outcomeColor)}>{result.score}%</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {result.earnedPoints} of {result.totalPoints} points earned
+            </p>
+          </div>
+          <Progress value={result.score} className="h-2.5 max-w-xs mx-auto" />
+          <Badge variant="outline" className={cn("text-sm px-4 py-1 font-semibold", outcomeColor, outcomeBorder)}>
+            {outcomeLabel}
+          </Badge>
+
+          {/* Short-answer pending notice */}
+          {result.hasShortAnswer && (
+            <div className="flex items-center gap-2 justify-center text-xs text-warning mt-2">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+              Some questions require manual marking by your assessor. Your final grade may change.
+            </div>
+          )}
         </div>
-        <div>
-          <h2 className="text-2xl font-bold text-foreground mb-1">Quiz Complete!</h2>
-          <p className="text-muted-foreground text-sm">{assessmentTitle}</p>
+
+        {/* ── Stats row ── */}
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: "Correct",   value: (quizResponses as any[]).filter(r => r.is_correct).length,  color: "text-success"     },
+            { label: "Incorrect", value: (quizResponses as any[]).filter(r => !r.is_correct && r.selected_option_id != null).length, color: "text-destructive" },
+            { label: "Unanswered",value: answeredQuestions.length - (quizResponses as any[]).length, color: "text-muted-foreground" },
+          ].map(s => (
+            <div key={s.label} className="bg-card rounded-xl border border-border/50 p-3 text-center">
+              <p className={cn("text-2xl font-bold", s.color)}>{s.value}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{s.label}</p>
+            </div>
+          ))}
         </div>
-        <div className="bg-card rounded-xl p-6 border border-border/50 shadow-card">
-          <p className="text-4xl font-bold text-foreground mb-1">{result.score}%</p>
-          <p className="text-sm text-muted-foreground">{result.earnedPoints} of {result.totalPoints} points earned</p>
-          <Progress value={result.score} className="h-2 mt-4" />
+
+        {/* ── Per-question breakdown ── */}
+        {showAnswers && answeredQuestions.length > 0 && (
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-foreground">Question Review</h3>
+            {answeredQuestions.map((q, idx) => {
+              const resp      = responseMap[q.id];
+              const isCorrect = resp?.is_correct;
+              const pts       = resp?.points_earned ?? 0;
+              const isShortAns = q.question_type === "short_answer" || q.question_type === "essay";
+
+              // The option the learner selected
+              const selectedOption = resp?.selected_option_id ? optionMap[resp.selected_option_id] : null;
+              // The correct option (for MCQ/TF)
+              const correctOption = (q.options ?? []).find((o: any) => o.is_correct);
+
+              return (
+                <div key={q.id} className={cn(
+                  "rounded-xl border p-4 space-y-2",
+                  isShortAns    ? "border-info/20 bg-info/5" :
+                  isCorrect     ? "border-success/20 bg-success/5" :
+                                  "border-destructive/20 bg-destructive/5"
+                )}>
+                  <div className="flex items-start gap-3">
+                    <div className={cn(
+                      "w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 text-[10px] font-bold",
+                      isShortAns    ? "bg-info/10 text-info" :
+                      isCorrect     ? "bg-success/10 text-success" :
+                                      "bg-destructive/10 text-destructive"
+                    )}>
+                      {idx + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground">{q.question_text}</p>
+                      <p className="text-[10px] text-muted-foreground capitalize mt-0.5">
+                        {q.question_type?.replace("_", " ")} · {q.points} pt{q.points !== 1 ? "s" : ""}
+                      </p>
+                    </div>
+                    <div className="shrink-0">
+                      {isShortAns ? (
+                        <Badge variant="outline" className="text-[9px] border-info/30 text-info">Manual Review</Badge>
+                      ) : isCorrect ? (
+                        <div className="flex items-center gap-1 text-success text-xs font-semibold">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> +{pts}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1 text-destructive text-xs font-semibold">
+                          <XCircle className="w-3.5 h-3.5" /> 0
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Show selected & correct answers for MCQ / T-F */}
+                  {(selectedOption || correctOption) && (
+                    <div className="ml-9 space-y-1">
+                      {selectedOption && (
+                        <div className={cn(
+                          "flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-lg",
+                          isCorrect ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
+                        )}>
+                          <span className="font-medium">Your answer:</span>
+                          <span>{selectedOption.option_text}</span>
+                        </div>
+                      )}
+                      {!isCorrect && correctOption && (
+                        <div className="flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-lg bg-success/10 text-success">
+                          <span className="font-medium">Correct answer:</span>
+                          <span>{correctOption.option_text}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Text answer (fill-blank, short answer, etc.) */}
+                  {resp?.text_answer && !selectedOption && (
+                    <div className="ml-9">
+                      <div className={cn(
+                        "text-[11px] px-2.5 py-1.5 rounded-lg",
+                        isShortAns ? "bg-info/10 text-info" :
+                        isCorrect  ? "bg-success/10 text-success" : "bg-destructive/10 text-destructive"
+                      )}>
+                        <span className="font-medium">Your answer: </span>{resp.text_answer}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Short answer — pending manual review notice */}
+                  {isShortAns && (
+                    <p className="ml-9 text-[10px] text-muted-foreground">
+                      ⏳ Your assessor will review and score this answer manually.
+                    </p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ── Actions ── */}
+        <div className="flex gap-3 pt-2">
+          <Button variant="outline" onClick={onClose} className="flex-1">
+            Back to Assessments
+          </Button>
+          {onClose && (
+            <Button onClick={onClose} className="flex-1 gap-1.5">
+              <CheckCircle2 className="w-4 h-4" /> Done
+            </Button>
+          )}
         </div>
-        <Badge variant="outline" className={cn(
-          "text-sm px-4 py-1",
-          result.score >= 70 ? "border-success text-success" : result.score >= 50 ? "border-warning text-warning" : "border-destructive text-destructive"
-        )}>
-          {result.score >= 70 ? "Passed" : result.score >= 50 ? "Needs Improvement" : "Not Yet Competent"}
-        </Badge>
-        {onClose && <Button onClick={onClose} className="mt-4">Done</Button>}
       </div>
     );
   }
