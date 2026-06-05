@@ -8,7 +8,7 @@ import {
   Plug, FileBarChart, Inbox, CheckSquare, UserCheck, MessagesSquare,
   AlertTriangle, Gauge, Lock, ToggleLeft, FileText, PieChart,
   Upload, Server, Eye, Type, Workflow, QrCode, CalendarCheck,
-  DollarSign, Sparkles, Globe, Trophy, Palette,
+  DollarSign, Sparkles, Globe, Trophy, Palette, FlaskConical,
 } from "lucide-react";
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -181,7 +181,8 @@ export const domainPortals: Record<DomainKey, DomainPortalConfig> = {
           { label: "Integrations", icon: Plug, path: "/admin/integrations", roles: ["super_admin"] },
           { label: "Email Configuration", icon: Bell, path: "/admin/settings?tab=email", roles: ["super_admin"] },
           { label: "POPIA Compliance", icon: ShieldCheck, path: "/admin/popia", roles: ["super_admin"] },
-          { label: "Design Manager", icon: Palette, path: "/admin/design-manager", roles: ["super_admin"] },
+          { label: "Design Manager",  icon: Palette,     path: "/admin/design-manager", roles: ["super_admin"] },
+          { label: "Test Data Manager", icon: FlaskConical, path: "/admin/test-data",  roles: ["super_admin"] },
         ],
       },
 

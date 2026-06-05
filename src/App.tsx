@@ -52,6 +52,7 @@ const PortfolioOfEvidence = lazy(() => import("@/pages/PortfolioOfEvidence"));
 const LearnerOnboarding = lazy(() => import("@/pages/LearnerOnboarding"));
 const StaffOnboarding = lazy(() => import("@/pages/StaffOnboarding"));
 const AdminStaffPool       = lazy(() => import("@/pages/AdminStaffPool"));
+const TestDataManager      = lazy(() => import("@/pages/TestDataManager"));
 const LdPractitionerPool   = lazy(() => import("@/pages/LdPractitionerPool"));
 const TalentManagement = lazy(() => import("@/pages/TalentManagement"));
 const TalentManagerPortal = lazy(() => import("@/pages/TalentManagerPortal"));
@@ -239,7 +240,8 @@ const App = () => (
                           <Route path="/gradebook" element={<Gradebook />} />
                           <Route path="/credentials" element={<Credentials />} />
                           <Route path="/staff/onboarding" element={<StaffOnboarding />} />
-                          <Route path="/admin/staff-pool" element={<AdminStaffPool />} />
+                          <Route path="/admin/staff-pool"   element={<AdminStaffPool />} />
+                          <Route path="/admin/test-data"    element={<TestDataManager />} />
                           <Route path="/ld-pool"         element={<LdPractitionerPool />} />
                           <Route path="/facilitator" element={<FacilitatorDashboard />} />
                           <Route path="/ld-support"  element={<LdSupportDashboard />} />

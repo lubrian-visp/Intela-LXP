@@ -11,7 +11,8 @@
       "Bash(git -C C:/Development/skillchain add src/components/layout/AppSidebar.tsx src/pages/ProgrammeManagerPortal.tsx)",
       "Bash(git -C C:/Development/skillchain commit -m ' *)",
       "Bash(git -C C:/Development/skillchain add src/components/layout/AppSidebar.tsx)",
-      "Bash(git -C C:/Development/skillchain add src/lib/portalNavConfig.ts)"
+      "Bash(git -C C:/Development/skillchain add src/lib/portalNavConfig.ts)",
+      "Bash(git -C C:/Development/skillchain add -A)"
     ]
   }
 }
