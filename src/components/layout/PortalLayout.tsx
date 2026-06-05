@@ -18,13 +18,21 @@ function PortalLayoutInner({ config, userRoles, children }: Props) {
 
   return (
     <div className="min-h-screen bg-background">
+      {/* WCAG 2.1 — Skip to main content link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-lg focus:text-sm focus:font-medium focus:shadow-lg"
+      >
+        Skip to main content
+      </a>
+
       <PortalSidebar config={config} userRoles={userRoles} />
       <div
         className={!isResizing ? "transition-all duration-200" : ""}
         style={{ paddingLeft: `${width}px` }}
       >
         <TopBar />
-        <main className="p-3 sm:p-4">
+        <main id="main-content" className="p-3 sm:p-4" tabIndex={-1}>
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}

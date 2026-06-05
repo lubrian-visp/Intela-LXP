@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>You're offline — Intela LXP</title>
+  <style>
+    body { font-family: Arial, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #f1f5f9; color: #0f172a; }
+    .card { background: #fff; border-radius: 16px; padding: 2.5rem; text-align: center; max-width: 380px; box-shadow: 0 4px 24px rgba(0,0,0,.08); }
+    .icon { font-size: 3rem; margin-bottom: 1rem; }
+    h1 { font-size: 1.25rem; font-weight: 700; margin: 0 0 .5rem; }
+    p  { color: #64748b; font-size: .875rem; margin: 0 0 1.5rem; }
+    button { background: #f97316; color: #fff; border: none; padding: .75rem 1.5rem; border-radius: 10px; font-size: .875rem; font-weight: 600; cursor: pointer; }
+    button:hover { background: #ea6c0a; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">📡</div>
+    <h1>You're offline</h1>
+    <p>Intela LXP needs a connection to load. Please check your internet and try again.</p>
+    <button onclick="location.reload()">Try again</button>
+  </div>
+</body>
+</html>

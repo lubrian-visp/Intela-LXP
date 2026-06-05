@@ -12,6 +12,9 @@ import CalendarWidget from "@/components/calendar/CalendarWidget";
 import LearnerRecommendationsWidget from "@/components/learner/LearnerRecommendationsWidget";
 import LearnerStreakWidget from "@/components/learner/LearnerStreakWidget";
 import LearnerDeadlineWidget from "@/components/learner/LearnerDeadlineWidget";
+import LearnerAnalyticsWidget from "@/components/learner/LearnerAnalyticsWidget";
+import LearnerCohortCompare from "@/components/learner/LearnerCohortCompare";
+import MilestoneDetector from "@/components/learner/MilestoneToast";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 import { useRecordStudyActivity } from "@/hooks/useLearnerStreak";
 import { useEffect } from "react";
@@ -41,6 +44,9 @@ export default function LearnerDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Milestone detector — fires celebratory toasts */}
+      <MilestoneDetector />
+
       <LearnerWelcomeHeader firstName={firstName} activeCount={activeEnrolments.length} overallProgress={overallProgress} />
       <LearnerStatsRow activeCount={activeEnrolments.length} credentialCount={credentials.length} submissionCount={submissions.length} overallProgress={overallProgress} />
 
@@ -57,7 +63,9 @@ export default function LearnerDashboard() {
           </div>
           <div className="space-y-6">
             <LearnerStreakWidget />
+            <LearnerCohortCompare />
             <LearnerDeadlineWidget />
+            <LearnerAnalyticsWidget />
             <LearnerRecommendationsWidget />
             <CalendarWidget events={calendarEvents} />
             <LearnerCredentialWallet credentials={credentials} />

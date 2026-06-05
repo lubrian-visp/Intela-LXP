@@ -15,7 +15,7 @@ import {
   GraduationCap, BookOpen, Award, ClipboardCheck, TrendingUp,
   FileText, Shield, Clock, CheckCircle2, XCircle, AlertTriangle,
   ChevronRight, ArrowLeft, Edit2, MoreHorizontal, Users,
-  Activity, BarChart3, Target, Star, Layers, Download,
+  Activity, BarChart3, Target, Star, Layers, Download, Lock,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -146,6 +146,51 @@ export default function LearnerProfilePage() {
   const { data: activityLog = [] } = useAuditActivity(targetId);
 
   const { profile, roles = [], enrolments = [], submissions = [], credentials = [], registration } = data ?? {};
+
+  const handlePOPIAExport = () => {
+    const exportData = {
+      exported_at: new Date().toISOString(),
+      personal_information: {
+        full_name:       registration?.full_name ?? (profile as any)?.full_name,
+        email:           registration?.email ?? email,
+        phone:           registration?.phone ?? (profile as any)?.phone,
+        date_of_birth:   registration?.date_of_birth,
+        national_id:     registration?.national_id ? "REDACTED for download" : null,
+        gender:          registration?.gender,
+        country:         registration?.country,
+        education_level: registration?.education_level,
+      },
+      academic_record: {
+        enrolments: enrolments.map((e: any) => ({
+          programme: e.cohorts?.programmes?.title,
+          cohort:    e.cohorts?.name,
+          status:    e.status,
+          progress:  e.progress_percentage,
+          enrolled_at: e.enrolled_at,
+        })),
+        assessments: submissions.map((s: any) => ({
+          title:        s.assessments?.title,
+          status:       s.status,
+          score:        s.score,
+          submitted_at: s.submitted_at,
+        })),
+        credentials: credentials.map((c: any) => ({
+          title:           c.title,
+          type:            c.credential_type,
+          issued_at:       c.issued_at,
+          blockchain_hash: c.blockchain_hash,
+        })),
+      },
+      note: "This data export is provided in accordance with POPIA Section 23 (Right of access to personal information).",
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = `InteLa_LXP_My_Data_${new Date().toISOString().split("T")[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   // ── Computed stats ──────────────────────────────────────────────────────────
   const activeEnrolments = useMemo(() =>
@@ -396,6 +441,26 @@ export default function LearnerProfilePage() {
                 <div className="px-4 py-3 rounded-xl bg-secondary/30 border border-border/40">
                   <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">Notes</p>
                   <p className="text-[13px] text-foreground">{registration.notes}</p>
+                </div>
+              )}
+
+              {/* POPIA data export — own profile only */}
+              {isSelf && (
+                <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-secondary/20 border border-border/40">
+                  <Lock className="w-4 h-4 text-muted-foreground shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <p className="text-[12px] font-semibold text-foreground">Your Data Rights (POPIA)</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Download a copy of all personal information held about you on this platform.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handlePOPIAExport}
+                    aria-label="Download your personal data (POPIA Section 23)"
+                    className="flex items-center gap-1.5 text-[11px] font-medium px-3 py-1.5 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors shrink-0"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Export My Data
+                  </button>
                 </div>
               )}
             </div>

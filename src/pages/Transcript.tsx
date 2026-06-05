@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { GraduationCap, Download, Printer, Award, CheckCircle2, Clock, BookOpen, User, FileText, Activity } from "lucide-react";
+import { GraduationCap, Download, Printer, Award, CheckCircle2, Clock, BookOpen, User, FileText, Activity, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubmissions, useCredentials, useEnrolments, useRealtimeSync } from "@/hooks/useCoreData";
@@ -19,8 +19,52 @@ export default function Transcript() {
   const scale = useDefaultGradingScale();
   useRealtimeSync(["assessment_submissions", "issued_credentials", "enrolments", "activity_grades"]);
 
-  const printRef = useRef<HTMLDivElement>(null);
-  const isLoading = loadingSubs || loadingCreds || loadingEnrol;
+  const printRef    = useRef<HTMLDivElement>(null);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const isLoading   = loadingSubs || loadingCreds || loadingEnrol;
+
+  const handleDownloadPDF = async () => {
+    setPdfLoading(true);
+    try {
+      // Dynamically import to avoid bundle bloat
+      const html2canvas = (await import("html2canvas")).default;
+      const jsPDF       = (await import("jspdf")).default;
+
+      const el = printRef.current;
+      if (!el) return;
+
+      const canvas = await html2canvas(el, {
+        scale: 2, useCORS: true, logging: false,
+        backgroundColor: "#ffffff",
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf     = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pdfW    = pdf.internal.pageSize.getWidth();
+      const pdfH    = (canvas.height * pdfW) / canvas.width;
+
+      // Paginate if content is taller than one A4 page
+      const pageH = pdf.internal.pageSize.getHeight();
+      if (pdfH <= pageH) {
+        pdf.addImage(imgData, "PNG", 0, 0, pdfW, pdfH);
+      } else {
+        let yOffset = 0;
+        while (yOffset < pdfH) {
+          pdf.addImage(imgData, "PNG", 0, -yOffset, pdfW, pdfH);
+          yOffset += pageH;
+          if (yOffset < pdfH) pdf.addPage();
+        }
+      }
+
+      const name = profile?.full_name?.replace(/\s+/g, "_") ?? "Learner";
+      pdf.save(`Transcript_${name}_${new Date().toISOString().split("T")[0]}.pdf`);
+    } catch (err) {
+      console.error("PDF export failed:", err);
+      // Fallback to print
+      window.print();
+    } finally {
+      setPdfLoading(false);
+    }
+  };
 
   // Aggregate stats
   const totalAssessments = submissions.length;
@@ -57,8 +101,14 @@ export default function Transcript() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5">
+          <Button variant="outline" size="sm" onClick={handlePrint} className="gap-1.5" aria-label="Print transcript">
             <Printer className="w-3.5 h-3.5" /> Print
+          </Button>
+          <Button size="sm" onClick={handleDownloadPDF} disabled={pdfLoading} className="gap-1.5" aria-label="Download transcript as PDF">
+            {pdfLoading
+              ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Generating…</>
+              : <><Download className="w-3.5 h-3.5" /> Download PDF</>
+            }
           </Button>
         </div>
       </div>
