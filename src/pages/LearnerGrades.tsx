@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { GraduationCap, Search, Trophy, TrendingUp, FileText, ShieldCheck, AlertCircle } from "lucide-react";
+import { GraduationCap, Search, Trophy, TrendingUp, FileText, ShieldCheck, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import {
   useUnifiedGradebook,
@@ -36,6 +36,15 @@ export default function LearnerGrades() {
   const [search, setSearch] = useState("");
   const [programmeFilter, setProgrammeFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<"all" | "assessment" | "activity">("all");
+  const [expandedFeedback, setExpandedFeedback] = useState<Set<string>>(new Set());
+
+  const toggleFeedback = useCallback((id: string) => {
+    setExpandedFeedback(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }, []);
 
   const { data: grades = [], isLoading } = useUnifiedGradebook({ learnerId: user?.id });
   const { data: enrolments = [] } = useEnrolments();
@@ -231,9 +240,28 @@ export default function LearnerGrades() {
                       )}
                     </p>
                     {g.feedback && (
-                      <p className="text-sm text-muted-foreground mt-2 italic line-clamp-2">
-                        "{g.feedback}"
-                      </p>
+                      <div className="mt-2">
+                        <p className={cn(
+                          "text-sm text-muted-foreground italic",
+                          !expandedFeedback.has(`${g.source}-${g.grade_id}`) && "line-clamp-2"
+                        )}>
+                          "{g.feedback}"
+                        </p>
+                        {g.feedback.length > 120 && (
+                          <button
+                            onClick={() => toggleFeedback(`${g.source}-${g.grade_id}`)}
+                            aria-expanded={expandedFeedback.has(`${g.source}-${g.grade_id}`)}
+                            aria-label={expandedFeedback.has(`${g.source}-${g.grade_id}`) ? "Collapse feedback" : "Read full feedback"}
+                            className="flex items-center gap-1 text-[11px] text-primary hover:underline mt-0.5"
+                          >
+                            {expandedFeedback.has(`${g.source}-${g.grade_id}`) ? (
+                              <><ChevronUp className="w-3 h-3" /> Show less</>
+                            ) : (
+                              <><ChevronDown className="w-3 h-3" /> Read full feedback</>
+                            )}
+                          </button>
+                        )}
+                      </div>
                     )}
                   </div>
 

@@ -11,8 +11,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LearnerSubmissionDialog } from "@/components/learner/LearnerSubmissionDialog";
 import {
   FileCheck, Clock, CheckCircle2, AlertCircle, BarChart3,
-  Filter, XCircle, Target, Send,
+  Filter, XCircle, Target, Send, Zap,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -35,8 +36,12 @@ const CATEGORY_BADGE: Record<string, string> = {
   transfer: "bg-primary/10 text-primary",
 };
 
+// Assessment types that should launch the interactive quiz taker
+const QUIZ_TYPES = ["formative", "summative", "quiz", "knowledge_check", "pre_test"];
+
 export default function LearnerAssessments() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [scopeFilter, setScopeFilter] = useState<string>("all");
   const [tab, setTab] = useState("progress");
   const [submitAssessment, setSubmitAssessment] = useState<any>(null);
@@ -261,9 +266,20 @@ export default function LearnerAssessments() {
                           {a.due_date && <span>Due: {a.due_date}</span>}
                         </div>
                       </div>
-                      <Button size="sm" className="gap-1.5 h-7 text-xs" onClick={() => setSubmitAssessment(a)}>
-                        <Send className="w-3 h-3" /> Submit
-                      </Button>
+                      {QUIZ_TYPES.includes(a.assessment_type ?? "") ? (
+                        <Button
+                          size="sm"
+                          className="gap-1.5 h-7 text-xs bg-primary"
+                          aria-label={`Take online quiz: ${a.title}`}
+                          onClick={() => navigate(`/quiz/${a.id}`)}
+                        >
+                          <Zap className="w-3 h-3" /> Take Quiz
+                        </Button>
+                      ) : (
+                        <Button size="sm" className="gap-1.5 h-7 text-xs" aria-label={`Submit ${a.title}`} onClick={() => setSubmitAssessment(a)}>
+                          <Send className="w-3 h-3" /> Submit
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>

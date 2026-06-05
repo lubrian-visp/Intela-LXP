@@ -221,16 +221,25 @@ export default function CourseSidebar({
                                   {isActive && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
                                 </span>
                               )}
-                              <span
-                                className={cn(
-                                  "text-[11px] flex-1 leading-snug line-clamp-2",
-                                  isActive
-                                    ? "text-primary font-semibold"
-                                    : "text-foreground/80"
+                              <div className="flex-1 min-w-0">
+                                <span
+                                  className={cn(
+                                    "text-[11px] leading-snug line-clamp-2 block",
+                                    isActive
+                                      ? "text-primary font-semibold"
+                                      : "text-foreground/80"
+                                  )}
+                                >
+                                  {block.title}
+                                </span>
+                                {block.duration_minutes && block.duration_minutes > 0 && (
+                                  <span className="text-[9px] text-muted-foreground/60 mt-0.5 block">
+                                    {block.duration_minutes < 60
+                                      ? `${block.duration_minutes} min`
+                                      : `${Math.floor(block.duration_minutes / 60)}h ${block.duration_minutes % 60 > 0 ? `${block.duration_minutes % 60}m` : ""}`}
+                                  </span>
                                 )}
-                              >
-                                {block.title}
-                              </span>
+                              </div>
                               {bookmarkedBlockIds.has(block.id) && (
                                 <Bookmark className="w-3 h-3 text-amber-500 fill-amber-500 shrink-0" />
                               )}

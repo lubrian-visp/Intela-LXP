@@ -62,6 +62,8 @@ export default function CourseToolbar({
             variant="ghost"
             size="sm"
             onClick={onToggleComplete}
+            aria-label={isCompleted ? `Mark "${blockTitle}" as incomplete` : `Mark "${blockTitle}" as complete`}
+            aria-pressed={isCompleted}
             className={cn(
               "text-xs gap-1.5 h-8",
               isCompleted
@@ -82,6 +84,8 @@ export default function CourseToolbar({
             size="icon"
             className="h-8 w-8"
             onClick={onToggleBookmark}
+            aria-label={isBookmarked ? `Remove bookmark from "${blockTitle}"` : `Bookmark "${blockTitle}"`}
+            aria-pressed={isBookmarked}
             title={isBookmarked ? "Remove bookmark" : "Bookmark this lesson"}
           >
             <Bookmark
@@ -97,6 +101,7 @@ export default function CourseToolbar({
             size="icon"
             className="h-8 w-8"
             onClick={onOpenNotes}
+            aria-label="Open notes panel"
             title="Notes"
           >
             <StickyNote className="w-4 h-4 text-muted-foreground" />
@@ -107,6 +112,7 @@ export default function CourseToolbar({
             size="icon"
             className="h-8 w-8"
             onClick={onOpenDiscussion}
+            aria-label="Open discussion panel"
             title="Discussion"
           >
             <MessageSquare className="w-4 h-4 text-muted-foreground" />
