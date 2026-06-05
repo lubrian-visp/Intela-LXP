@@ -640,7 +640,14 @@ export const domainPortals: Record<DomainKey, DomainPortalConfig> = {
         title: "Credentials",
         items: [
           { label: "My Credentials", icon: Award, path: "/credentials", roles: ["learner"] },
-          { label: "Achievements", icon: Trophy, path: "/achievements", roles: ["learner"] },
+          { label: "Achievements",   icon: Trophy, path: "/achievements", roles: ["learner"] },
+        ],
+      },
+      {
+        title: "Account",
+        items: [
+          { label: "My Profile",        icon: User,     path: "/learner/profile/me", roles: ["learner"] },
+          { label: "My Settings",       icon: Settings, path: "/my-settings",        roles: ["learner"] },
         ],
       },
 
@@ -793,7 +800,8 @@ const pathToDomain: Record<string, DomainKey> = {
   "/provider": "business",
   // L&D
   "/learner": "learning_development",
-  "/ld-support": "learning_development",
+  "/ld-support":          "learning_development",
+  "/learner/profile":     "learning_development",
   "/facilitator": "learning_development",
   "/assessor": "learning_development",
   "/moderator": "learning_development",
