@@ -26,6 +26,7 @@ import SuperAdminOverrideForm from "@/components/onboarding/SuperAdminOverrideFo
 import VerificationChecklistDialog from "@/components/onboarding/VerificationChecklistDialog";
 import DocumentVerificationPanel from "@/components/onboarding/DocumentVerificationPanel";
 import BulkLearnerImportDialog from "@/components/onboarding/BulkLearnerImportDialog";
+import ApproveEnrolDialog from "@/components/onboarding/ApproveEnrolDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useAutoStartWorkflow } from "@/hooks/useWorkflowIntegration";
@@ -106,6 +107,7 @@ const methodLabels: Record<string, string> = {
 
 const auditActionLabels: Record<string, string> = {
   registered: "Registered", approved: "Approved", rejected: "Rejected",
+  approved_and_enrolled: "Approved & Enrolled",
   returned: "Returned for Revision", enrolled: "Enrolled",
   cohort_assigned: "Cohort Assigned", toggle_enabled: "Toggle Enabled",
   toggle_disabled: "Toggle Disabled", documents_requested: "Documents Requested",
@@ -128,6 +130,8 @@ export default function LearnerOnboarding() {
   const [enrolModalOpen, setEnrolModalOpen] = useState(false);
   const [enrolTarget, setEnrolTarget] = useState<Registration | null>(null);
   const [enrolCohortId, setEnrolCohortId] = useState("");
+  // New: Approve & Enrol combined dialog
+  const [approveEnrolTarget, setApproveEnrolTarget] = useState<Registration | null>(null);
   const [toggleReasonDialog, setToggleReasonDialog] = useState<{ scopeLevel: string; scopeId: string | null; newState: boolean } | null>(null);
   const [toggleReason, setToggleReason] = useState("");
   const [docViewRegistration, setDocViewRegistration] = useState<Registration | null>(null);
@@ -242,11 +246,13 @@ export default function LearnerOnboarding() {
   });
 
   const pending = useMemo(() => (registrations ?? []).filter(r => ["pending_approval", "submitted", "resubmitted"].includes(r.status)), [registrations]);
-  const directoryLearners = useMemo(() => (registrations ?? []).filter(r => ["approved", "enrolled"].includes(r.status)), [registrations]);
+  // Directory: ONLY enrolled learners (those with a cohort assignment)
+  const directoryLearners = useMemo(() => (registrations ?? []).filter(r => r.status === "enrolled"), [registrations]);
+  // Repository: everything that isn't enrolled (including any "approved" that slipped through)
+  const repositoryRegistrations = useMemo(() => (registrations ?? []).filter(r => r.status !== "enrolled" && !r.is_archived), [registrations]);
   const approved = useMemo(() => (registrations ?? []).filter(r => r.status === "approved"), [registrations]);
   const enrolled = useMemo(() => (registrations ?? []).filter(r => r.status === "enrolled"), [registrations]);
   const slaBreached = useMemo(() => (registrations ?? []).filter(r => r.sla_breached), [registrations]);
-  const repositoryRegistrations = useMemo(() => (registrations ?? []).filter(r => !["approved", "enrolled"].includes(r.status)), [registrations]);
 
   const filteredRegistrations = useMemo(() => {
     const list = tab === "directory" ? directoryLearners : repositoryRegistrations;
@@ -399,8 +405,9 @@ export default function LearnerOnboarding() {
             </div>
             <div className="flex items-center gap-2">
               {tab === "repository" && selectedIds.size > 0 && (
-                <Button size="sm" className="h-8 text-xs gap-1 bg-success text-success-foreground" onClick={() => bulkApprove.mutate(Array.from(selectedIds))}>
-                  <ThumbsUp className="w-3 h-3" /> Approve {selectedIds.size}
+                <Button size="sm" className="h-8 text-xs gap-1 bg-green-600 hover:bg-green-700 text-white"
+                  onClick={() => bulkApprove.mutate(Array.from(selectedIds))}>
+                  <UserCheck className="w-3 h-3" /> Approve & Enrol {selectedIds.size}
                 </Button>
               )}
               <div className="relative">
@@ -512,11 +519,25 @@ export default function LearnerOnboarding() {
                         )}
                         <td className="px-3 py-3 text-right">
                           {tab === "repository" && (
-                            <div className="flex items-center justify-end gap-1">
-                              <Button size="sm" variant="ghost" className="h-7 px-2 text-xs gap-1"
+                            <div className="flex items-center justify-end gap-1.5">
+                              <Button size="sm" variant="outline" className="h-7 px-2 text-xs gap-1"
                                 onClick={() => setChecklistRegistration(r)}>
-                                <ClipboardCheck className="w-3 h-3" /> Review
+                                <ClipboardCheck className="w-3 h-3" /> Verify
                               </Button>
+                              {/* Only show Approve & Enrol when all checks are ready */}
+                              {["pending_approval", "submitted", "resubmitted"].includes(r.status) && (
+                                <Button size="sm" className="h-7 px-2.5 text-xs gap-1 bg-green-600 hover:bg-green-700 text-white"
+                                  onClick={() => setApproveEnrolTarget(r)}>
+                                  <UserCheck className="w-3 h-3" /> Approve & Enrol
+                                </Button>
+                              )}
+                              {/* Fallback for previously approved-but-not-enrolled */}
+                              {r.status === "approved" && (
+                                <Button size="sm" className="h-7 px-2.5 text-xs gap-1 bg-primary text-primary-foreground"
+                                  onClick={() => setApproveEnrolTarget(r)}>
+                                  <GraduationCap className="w-3 h-3" /> Enrol
+                                </Button>
+                              )}
                             </div>
                           )}
                           {tab === "directory" && (
@@ -789,11 +810,25 @@ export default function LearnerOnboarding() {
           registration={checklistRegistration}
           open={!!checklistRegistration}
           onClose={() => setChecklistRegistration(null)}
-          onApprove={(id, reason, authoritySource) => approveRegistration.mutate({ id, reason, authoritySource })}
+          onApprove={(id, _reason, _authoritySource) => {
+            // Instead of directly approving, open the combined Approve & Enrol dialog
+            const reg = (registrations ?? []).find(r => r.id === id);
+            if (reg) {
+              setChecklistRegistration(null);
+              setApproveEnrolTarget(reg);
+            }
+          }}
           onReject={(id, reason, authoritySource) => rejectRegistration.mutate({ id, reason, authoritySource })}
           slaAmberPercent={slaConfig?.amberPercent || 75}
         />
       )}
+
+      {/* ══ Approve & Enrol Dialog — Repository → Directory gateway ══ */}
+      <ApproveEnrolDialog
+        registration={approveEnrolTarget}
+        open={!!approveEnrolTarget}
+        onOpenChange={v => { if (!v) setApproveEnrolTarget(null); }}
+      />
 
       {/* Toggle Reason Dialog */}
       <Dialog open={!!toggleReasonDialog} onOpenChange={() => setToggleReasonDialog(null)}>

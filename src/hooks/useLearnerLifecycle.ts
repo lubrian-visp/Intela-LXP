@@ -271,6 +271,76 @@ export function useRunEligibilityChecks() {
   });
 }
 
+// ── Approve & Enrol — single atomic action (Repository → Directory) ──────────
+export function useApproveAndEnrol() {
+  const qc   = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({
+      registrationId,
+      learnerId,
+      cohortId,
+      programmeId,
+      approvalReason,
+      authoritySource,
+    }: {
+      registrationId: string;
+      learnerId: string;
+      cohortId: string;
+      programmeId: string;
+      approvalReason?: string;
+      authoritySource?: string;
+    }) => {
+      // 1. Create the enrolment record
+      const { error: enrolError } = await supabase.from("enrolments").upsert(
+        {
+          learner_id:   learnerId,
+          cohort_id:    cohortId,
+          status:       "active",
+          enrolled_at:  new Date().toISOString(),
+          approved_by:  user?.id || null,
+        },
+        { onConflict: "cohort_id,learner_id", ignoreDuplicates: true }
+      );
+      if (enrolError) throw enrolError;
+
+      // 2. Move registration directly to "enrolled" (skipping "approved" limbo)
+      const { error: regError } = await supabase
+        .from("learner_registrations")
+        .update({
+          status:      "enrolled",
+          reviewed_at: new Date().toISOString(),
+          reviewed_by: user?.id || null,
+        })
+        .eq("id", registrationId);
+      if (regError) throw regError;
+
+      // 3. Single audit entry capturing the full action
+      await supabase.from("onboarding_audit_log").insert({
+        entity_type:  "learner",
+        entity_id:    registrationId,
+        action:       "approved_and_enrolled",
+        performed_by: user?.id || null,
+        details: {
+          cohort_id:        cohortId,
+          programme_id:     programmeId,
+          reason:           approvalReason || null,
+          authority_source: authoritySource || "manual",
+        },
+      });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["learner_registrations"] });
+      qc.invalidateQueries({ queryKey: ["enrolments"] });
+      qc.invalidateQueries({ queryKey: ["onboarding_audit_log"] });
+    },
+    onError: (err: any) => {
+      console.error("Approve & Enrol failed:", err);
+    },
+  });
+}
+
 // ── Enrol Learner (from Directory) ──
 export function useEnrolLearner() {
   const qc = useQueryClient();
