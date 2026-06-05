@@ -9,6 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LearnerSubmissionDialog } from "@/components/learner/LearnerSubmissionDialog";
+import { ReflectiveJournalDialog } from "@/components/learner/ReflectiveJournalDialog";
+import { useRecordStudyActivity } from "@/hooks/useLearnerStreak";
+import { useEffect } from "react";
 import {
   FileCheck, Clock, CheckCircle2, AlertCircle, BarChart3,
   Filter, XCircle, Target, Send, Zap,
@@ -42,9 +45,16 @@ const QUIZ_TYPES = ["formative", "summative", "quiz", "knowledge_check", "pre_te
 export default function LearnerAssessments() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [scopeFilter, setScopeFilter] = useState<string>("all");
-  const [tab, setTab] = useState("progress");
+  const recordActivity = useRecordStudyActivity();
+  const [scopeFilter, setScopeFilter]     = useState<string>("all");
+  const [tab, setTab]                     = useState("progress");
   const [submitAssessment, setSubmitAssessment] = useState<any>(null);
+  const [journalAssessment, setJournalAssessment] = useState<any>(null);
+
+  // Record assessment page visit as study activity
+  useEffect(() => {
+    if (user?.id) recordActivity.mutate({ minutes: 5, activity: "assessment" });
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: submissions = [], isLoading: subsLoading } = useSubmissions({ learnerId: user?.id });
   const { data: enrolments = [], isLoading: enrLoading } = useEnrolments({ learnerId: user?.id });
@@ -267,16 +277,21 @@ export default function LearnerAssessments() {
                         </div>
                       </div>
                       {QUIZ_TYPES.includes(a.assessment_type ?? "") ? (
-                        <Button
-                          size="sm"
-                          className="gap-1.5 h-7 text-xs bg-primary"
+                        <Button size="sm" className="gap-1.5 h-7 text-xs bg-primary"
                           aria-label={`Take online quiz: ${a.title}`}
-                          onClick={() => navigate(`/quiz/${a.id}`)}
-                        >
+                          onClick={() => navigate(`/quiz/${a.id}`)}>
                           <Zap className="w-3 h-3" /> Take Quiz
                         </Button>
+                      ) : a.assessment_type === "reflection_journal" ? (
+                        <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs border-blue-500/30 text-blue-600"
+                          aria-label={`Write journal: ${a.title}`}
+                          onClick={() => setJournalAssessment(a)}>
+                          📓 Write Journal
+                        </Button>
                       ) : (
-                        <Button size="sm" className="gap-1.5 h-7 text-xs" aria-label={`Submit ${a.title}`} onClick={() => setSubmitAssessment(a)}>
+                        <Button size="sm" className="gap-1.5 h-7 text-xs"
+                          aria-label={`Submit ${a.title}`}
+                          onClick={() => setSubmitAssessment(a)}>
                           <Send className="w-3 h-3" /> Submit
                         </Button>
                       )}
@@ -309,7 +324,7 @@ export default function LearnerAssessments() {
           )}
         </TabsContent>
 
-        {/* Timeline View */}
+        {/* Timeline View — mobile-responsive card layout */}
         <TabsContent value="timeline" className="mt-4">
           <div className="bg-card rounded-xl shadow-card border border-border/50 overflow-hidden">
             {submissions.length === 0 ? (
@@ -322,22 +337,27 @@ export default function LearnerAssessments() {
                 {submissions
                   .sort((a: any, b: any) => new Date(b.submitted_at || b.created_at).getTime() - new Date(a.submitted_at || a.created_at).getTime())
                   .map((s: any) => {
-                    const st = statusStyles[s.status] ?? statusStyles.pending;
+                    const st   = statusStyles[s.status] ?? statusStyles.pending;
                     const Icon = st.icon;
                     return (
-                      <div key={s.id} className="flex items-center gap-4 px-5 py-3 hover:bg-secondary/20 transition-colors">
-                        <div className={cn("p-1.5 rounded-lg shrink-0", st.bg)}>
-                          <Icon className={cn("w-3.5 h-3.5", st.color)} />
+                      /* Responsive: stacks on mobile, row on sm+ */
+                      <div key={s.id} className="flex flex-col sm:flex-row sm:items-center gap-2 px-4 py-3 hover:bg-secondary/20 transition-colors">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <div className={cn("p-1.5 rounded-lg shrink-0", st.bg)}>
+                            <Icon className={cn("w-3.5 h-3.5", st.color)} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{s.assessments?.title ?? "Assessment"}</p>
+                            {s.feedback && <p className="text-[10px] text-muted-foreground line-clamp-1">"{s.feedback}"</p>}
+                          </div>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate">{s.assessments?.title ?? "Assessment"}</p>
-                          {s.feedback && <p className="text-[10px] text-muted-foreground truncate max-w-[300px]">"{s.feedback}"</p>}
+                        <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 pl-9 sm:pl-0">
+                          <div className="text-left sm:text-right">
+                            <p className="text-xs font-medium text-foreground">{s.score != null ? `${s.score}/${s.assessments?.max_score ?? 100}` : "—"}</p>
+                            <p className="text-[9px] text-muted-foreground">{s.submitted_at ? format(new Date(s.submitted_at), "d MMM yyyy") : "Draft"}</p>
+                          </div>
+                          <Badge className={cn("text-[8px] border-0 shrink-0", st.bg, st.color)}>{st.label}</Badge>
                         </div>
-                        <div className="text-right shrink-0">
-                          <p className="text-xs font-medium text-foreground">{s.score != null ? `${s.score}/${s.assessments?.max_score ?? 100}` : "—"}</p>
-                          <p className="text-[9px] text-muted-foreground">{s.submitted_at ? format(new Date(s.submitted_at), "MMM dd, yyyy") : "—"}</p>
-                        </div>
-                        <Badge className={cn("text-[8px] border-0 shrink-0", st.bg, st.color)}>{st.label}</Badge>
                       </div>
                     );
                   })}
@@ -347,7 +367,7 @@ export default function LearnerAssessments() {
         </TabsContent>
       </Tabs>
 
-      {/* Submission Dialog */}
+      {/* File / Text Submission Dialog */}
       {submitAssessment && (
         <LearnerSubmissionDialog
           open={!!submitAssessment}
@@ -355,6 +375,16 @@ export default function LearnerAssessments() {
           assessment={submitAssessment}
           enrolmentId={enrolments[0]?.id}
           existingSubmission={resubmitMap[submitAssessment.id] || null}
+        />
+      )}
+
+      {/* Reflective Journal Dialog */}
+      {journalAssessment && (
+        <ReflectiveJournalDialog
+          open={!!journalAssessment}
+          onOpenChange={(open) => { if (!open) setJournalAssessment(null); }}
+          assessment={journalAssessment}
+          enrolmentId={enrolments[0]?.id}
         />
       )}
     </div>

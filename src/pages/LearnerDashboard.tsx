@@ -10,11 +10,21 @@ import LearnerSubmissionsTable from "@/components/learner/LearnerSubmissionsTabl
 import LearnerCredentialWallet from "@/components/learner/LearnerCredentialWallet";
 import CalendarWidget from "@/components/calendar/CalendarWidget";
 import LearnerRecommendationsWidget from "@/components/learner/LearnerRecommendationsWidget";
+import LearnerStreakWidget from "@/components/learner/LearnerStreakWidget";
+import LearnerDeadlineWidget from "@/components/learner/LearnerDeadlineWidget";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
+import { useRecordStudyActivity } from "@/hooks/useLearnerStreak";
+import { useEffect } from "react";
 
 export default function LearnerDashboard() {
   const { user, profile } = useAuth();
   const { data: calendarEvents = [] } = useCalendarEvents();
+  const recordActivity = useRecordStudyActivity();
+
+  // Record dashboard visit as a study activity (1 min) to contribute to streak
+  useEffect(() => {
+    if (user?.id) recordActivity.mutate({ minutes: 1, activity: "content" });
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const { data: enrolments = [], isLoading: enrolLoading } = useEnrolments({ learnerId: user?.id });
   const { data: credentials = [], isLoading: credLoading } = useCredentials(user?.id);
   const { data: submissions = [], isLoading: subLoading } = useSubmissions({ learnerId: user?.id });
@@ -46,6 +56,8 @@ export default function LearnerDashboard() {
             <LearnerSubmissionsTable submissions={submissions} />
           </div>
           <div className="space-y-6">
+            <LearnerStreakWidget />
+            <LearnerDeadlineWidget />
             <LearnerRecommendationsWidget />
             <CalendarWidget events={calendarEvents} />
             <LearnerCredentialWallet credentials={credentials} />

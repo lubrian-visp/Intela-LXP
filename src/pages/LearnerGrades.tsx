@@ -1,6 +1,7 @@
 import { useMemo, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { GraduationCap, Search, Trophy, TrendingUp, FileText, ShieldCheck, AlertCircle, ChevronDown, ChevronUp } from "lucide-react";
+import RubricBreakdown from "@/components/learner/RubricBreakdown";
 import { useAuth } from "@/hooks/useAuth";
 import {
   useUnifiedGradebook,
@@ -311,6 +312,10 @@ export default function LearnerGrades() {
                     )}
                   </div>
                 </div>
+                {/* Rubric breakdown — shown when available */}
+                {g.source === "assessment" && g.grade_id && (
+                  <RubricBreakdown submissionId={g.grade_id} />
+                )}
               </Card>
             );
           })}
