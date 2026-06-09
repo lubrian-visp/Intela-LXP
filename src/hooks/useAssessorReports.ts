@@ -198,3 +198,33 @@ export function useDeleteAssessorReport() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["assessor_reports"] }),
   });
 }
+
+/**
+ * Learner-facing: fetch mentor feedback from assessor reports for a specific learner.
+ * Reads section4_learners (JSON list) to find the learner's row, plus section5_mentor_update.
+ * This surfaces mentor workplace guidance that was previously write-only from the learner's view.
+ */
+export function useMentorFeedbackForLearner(learnerId?: string) {
+  return useQuery({
+    queryKey: ["mentor_feedback_learner", learnerId],
+    enabled: !!learnerId,
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("assessor_reports")
+        .select("id, programme_name, report_date, section5_mentor_update, section5_difficulties, section5_conflicts, section4_learners")
+        .not("section5_mentor_update", "is", null)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+
+      // Filter to reports that include this learner in section4
+      const learnerReports = (data ?? []).filter((r: any) => {
+        if (!r.section4_learners) return false;
+        const learners: any[] = Array.isArray(r.section4_learners) ? r.section4_learners : [];
+        return learners.some((l: any) => l.user_id === learnerId || l.learner_id === learnerId);
+      });
+
+      return learnerReports as AssessorReportRow[];
+    },
+    staleTime: 60_000,
+  });
+}

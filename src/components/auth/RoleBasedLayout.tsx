@@ -144,20 +144,52 @@ export default function RoleBasedLayout({ children }: { children: ReactNode }) {
     );
   }
 
-  // No roles assigned — show a bare shell with a notice
+  // No roles assigned — clear onboarding guidance instead of a dead-end
   return (
     <div className="min-h-screen bg-background">
       <TopBar />
-      <main className="p-8 max-w-md mx-auto mt-16 text-center space-y-4">
-        <div className="w-12 h-12 rounded-full bg-warning/10 flex items-center justify-center mx-auto">
-          <svg className="w-6 h-6 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <main className="p-8 max-w-lg mx-auto mt-16 text-center space-y-6">
+        <div className="w-16 h-16 rounded-full bg-warning/10 flex items-center justify-center mx-auto">
+          <svg className="w-8 h-8 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M12 3a9 9 0 100 18A9 9 0 0012 3z" />
           </svg>
         </div>
-        <h2 className="text-lg font-semibold text-foreground">No role assigned</h2>
-        <p className="text-sm text-muted-foreground">
-          Your account exists but has not been assigned a role yet. Please contact your administrator.
-        </p>
+        <div className="space-y-2">
+          <h2 className="text-xl font-bold text-foreground">Account setup in progress</h2>
+          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+            Your account has been created successfully. A platform administrator needs to assign
+            your role before you can access your portal.
+          </p>
+        </div>
+
+        {/* What happens next */}
+        <div className="text-left bg-card rounded-xl border border-border/50 p-5 space-y-3 shadow-sm">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">What happens next</p>
+          {[
+            { step: "1", text: "An administrator will review your account and assign your role (e.g. Learner, Facilitator, Assessor)." },
+            { step: "2", text: "You will receive an email notification when your role is activated." },
+            { step: "3", text: "Return here and sign in — your portal will load automatically." },
+          ].map(s => (
+            <div key={s.step} className="flex items-start gap-3">
+              <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">{s.step}</span>
+              <p className="text-xs text-muted-foreground">{s.text}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
+          <span>Need help?</span>
+          <a href="mailto:support@intela.co.za" className="text-primary hover:underline font-medium">
+            Contact support
+          </a>
+          <span>·</span>
+          <button
+            onClick={() => { import("@/integrations/supabase/client").then(m => m.supabase.auth.signOut()); }}
+            className="text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Sign out
+          </button>
+        </div>
       </main>
     </div>
   );

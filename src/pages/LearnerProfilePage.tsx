@@ -5,6 +5,7 @@
  */
 import { useState, useMemo } from "react";
 import { useRealtimeSync } from "@/hooks/useCoreData";
+import { useMentorFeedbackForLearner } from "@/hooks/useAssessorReports";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -126,7 +127,7 @@ function useAuditActivity(userId: string | undefined) {
   });
 }
 
-type ProfileTab = "overview" | "academic" | "assessments" | "credentials" | "activity";
+type ProfileTab = "overview" | "academic" | "assessments" | "credentials" | "activity" | "mentor";
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
@@ -149,6 +150,8 @@ export default function LearnerProfilePage() {
 
   const { data, isLoading } = useLearnerProfile(targetId);
   const { data: activityLog = [] } = useAuditActivity(targetId);
+  // Mentor feedback — previously write-only from learner's view (Journey 7 fix)
+  const { data: mentorReports = [] } = useMentorFeedbackForLearner(targetId);
 
   const { profile, roles = [], enrolments = [], submissions = [], credentials = [], registration } = data ?? {};
 
@@ -241,6 +244,8 @@ export default function LearnerProfilePage() {
     { key: "assessments",  label: "Assessments",      count: submissions.length },
     { key: "credentials",  label: "Credentials",      count: credentials.length },
     { key: "activity",     label: "Activity Log" },
+    // Only show Mentor Feedback tab when there is feedback to display
+    ...(mentorReports.length > 0 ? [{ key: "mentor" as ProfileTab, label: "Mentor Feedback", count: mentorReports.length }] : []),
   ];
 
   if (isLoading) {
@@ -696,6 +701,58 @@ export default function LearnerProfilePage() {
                       <time className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0">
                         {formatDistanceToNow(new Date(entry.created_at), { addSuffix: true })}
                       </time>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Mentor Feedback (Journey 7 fix — was invisible to learner) ── */}
+          {tab === "mentor" && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Users className="w-4 h-4 text-primary" /> Mentor & Assessor Feedback
+                </h3>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Workplace guidance and mentor observations recorded in your assessment reports.
+                </p>
+              </div>
+              {mentorReports.length === 0 ? (
+                <div className="py-12 text-center text-sm text-muted-foreground">No mentor feedback recorded yet.</div>
+              ) : (
+                <div className="space-y-4">
+                  {mentorReports.map((r: any) => (
+                    <div key={r.id} className="rounded-xl border border-border/50 bg-card p-5 space-y-4">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <p className="text-sm font-semibold text-foreground">{r.programme_name ?? "Assessment Report"}</p>
+                        {r.report_date && (
+                          <span className="text-[10px] text-muted-foreground">
+                            {format(new Date(r.report_date), "d MMM yyyy")}
+                          </span>
+                        )}
+                      </div>
+                      {r.section5_mentor_update && (
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Mentor Update</p>
+                          <p className="text-sm text-foreground leading-relaxed bg-secondary/20 rounded-lg p-3">{r.section5_mentor_update}</p>
+                        </div>
+                      )}
+                      {r.section5_difficulties && (
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                            <AlertTriangle className="w-3 h-3 text-warning" /> Learner with Difficulties
+                          </p>
+                          <p className="text-sm text-foreground leading-relaxed bg-warning/5 border border-warning/20 rounded-lg p-3">{r.section5_difficulties}</p>
+                        </div>
+                      )}
+                      {r.section5_conflicts && (
+                        <div className="space-y-1.5">
+                          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Conflict Notes</p>
+                          <p className="text-sm text-foreground leading-relaxed bg-secondary/20 rounded-lg p-3">{r.section5_conflicts}</p>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

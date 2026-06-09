@@ -24,6 +24,42 @@ export default function AcceptInvitation() {
     }
     setState("accepting");
     const db = supabase as any;
+
+    // ── Security: validate that the invitation email matches the signed-in user ──
+    const { data: invite, error: invErr } = await db
+      .from("tenant_invitations")
+      .select("email, status, expires_at")
+      .eq("token", token)
+      .maybeSingle();
+
+    if (invErr || !invite) {
+      setError("Invitation not found or has expired.");
+      setState("error");
+      return;
+    }
+    if (invite.status === "accepted") {
+      setError("This invitation has already been accepted.");
+      setState("error");
+      return;
+    }
+    if (invite.expires_at && new Date(invite.expires_at) < new Date()) {
+      setError("This invitation has expired. Please request a new one.");
+      setState("error");
+      return;
+    }
+    // Validate email matches — prevents invitation hijacking
+    if (invite.email.toLowerCase() !== user?.email?.toLowerCase()) {
+      setError(
+        `This invitation was sent to ${invite.email}. ` +
+        `You are signed in as ${user?.email}. ` +
+        `Please sign in with the correct account to accept this invitation.`
+      );
+      setState("error");
+      toast.error("Email mismatch — wrong account");
+      return;
+    }
+
+    // Proceed with acceptance
     const { data, error: rpcError } = await db.rpc("accept_tenant_invitation", { _token: token });
     if (rpcError) {
       setError(rpcError.message);
@@ -33,7 +69,6 @@ export default function AcceptInvitation() {
     }
     setState("accepted");
     toast.success("Invitation accepted! Welcome to the workspace.");
-    // Switch to the new tenant
     if (data) {
       try {
         await db.rpc("set_active_tenant", { _tenant_id: data });
