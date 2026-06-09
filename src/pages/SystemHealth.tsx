@@ -1,4 +1,5 @@
 import { Activity, CheckCircle2, AlertTriangle, Database, Server, RefreshCw } from "lucide-react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/animations/MotionWrappers";
 import { useServiceHealthCheck } from "@/hooks/useSystemsAdminData";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,6 +18,7 @@ const serviceIcons: Record<string, any> = {
 };
 
 export default function SystemHealth() {
+  usePageTitle("System Health", "Platform Management");
   const { data: services = [], isLoading, dataUpdatedAt } = useServiceHealthCheck();
   const queryClient = useQueryClient();
 

@@ -6,12 +6,14 @@ import { FadeIn, StaggerContainer, StaggerItem } from "@/components/animations/M
 import { useProgrammes, useCohorts, useEnrolments, useCredentials, usePathways, useRealtimeSync } from "@/hooks/useCoreData";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMemo } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import CalendarWidget from "@/components/calendar/CalendarWidget";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 import { WelcomeBanner, KpiGrid, ActionButton } from "@/components/dashboard/DashboardShell";
 import { useNavigate } from "react-router-dom";
 
 export default function Dashboard() {
+  usePageTitle("Dashboard", "Super Admin");
   const navigate = useNavigate();
   const { data: programmes, isLoading: loadingProg } = useProgrammes();
   const { data: cohorts, isLoading: loadingCoh } = useCohorts();

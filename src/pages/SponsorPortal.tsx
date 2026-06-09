@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   Users, TrendingUp, CheckCircle2,
   ArrowUpRight, ArrowDownRight, GraduationCap,
@@ -32,6 +33,7 @@ function getStatus(e: SponsorEnrolment): LearnerStatus {
 }
 
 export default function SponsorPortal() {
+  usePageTitle("Dashboard", "Sponsor Portal");
   const [learnerFilter, setLearnerFilter] = useState("All");
   const [searchLearner, setSearchLearner] = useState("");
   const [countryFilter, setCountryFilter] = useState("all");
@@ -123,6 +125,29 @@ export default function SponsorPortal() {
     );
   }
 
+  // Export filtered learners as CSV
+  const handleExport = useCallback(() => {
+    const rows = [
+      ["Learner ID", "Programme", "Cohort", "Status", "Progress %", "Country", "Enrolled At"].join(","),
+      ...filteredByContext.map(e => [
+        e.learner_id,
+        `"${e.programme_title ?? ""}"`,
+        `"${e.cohort_name ?? ""}"`,
+        e.displayStatus,
+        e.progress_percentage ?? 0,
+        e.country ?? "",
+        e.enrolled_at ? new Date(e.enrolled_at).toLocaleDateString() : "",
+      ].join(",")),
+    ].join("\n");
+    const blob = new Blob([rows], { type: "text/csv" });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement("a");
+    a.href     = url;
+    a.download = `sponsor-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [filteredByContext]);
+
   return (
     <div className="space-y-6">
       <FadeIn>
@@ -158,7 +183,11 @@ export default function SponsorPortal() {
                 ))}
               </SelectContent>
             </Select>
-            <button className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
+            <button
+              onClick={handleExport}
+              className="inline-flex items-center gap-2 px-4 py-2 text-xs font-medium rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              aria-label="Export learner report as CSV"
+            >
               <Download className="w-3.5 h-3.5" /> Export Report
             </button>
           </div>

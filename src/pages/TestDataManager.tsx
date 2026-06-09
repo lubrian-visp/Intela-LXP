@@ -58,7 +58,7 @@ function CopyButton({ text, label }: { text: string; label: string }) {
 }
 
 const SEED_SUMMARY = [
-  { icon: Users,          label: "5 test users",              detail: "3 Learners · 1 Facilitator · 1 Assessor" },
+  { icon: Users,          label: "8 test users",              detail: "4 Learners · 1 Facilitator · 1 Assessor · 1 PM · 1 Operations" },
   { icon: BookOpen,       label: "Programme + 2 modules",     detail: "4 content blocks, active status" },
   { icon: ClipboardCheck, label: "4 assessments",             detail: "Auto-graded quiz, formative, summative (moderated), journal" },
   { icon: BarChart3,      label: "6 quiz questions",          detail: "5 MCQ/T-F (auto-graded) + 1 short answer (manual)" },

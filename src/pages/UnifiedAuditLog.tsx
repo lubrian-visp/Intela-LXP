@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { History, Search, Filter, Database, Trash2, GitBranch } from "lucide-react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { FadeIn } from "@/components/animations/MotionWrappers";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,6 +17,7 @@ const sourceConfig: Record<string, { label: string; icon: any; color: string }> 
 };
 
 export default function UnifiedAuditLog() {
+  usePageTitle("Unified Audit Trail", "Super Admin");
   const [search, setSearch] = useState("");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
 

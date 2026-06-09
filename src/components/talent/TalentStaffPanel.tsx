@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface Props {
   data: any;
   isLoading: boolean;
+  onViewStaff?: (userId: string) => void;
 }
 
 const statusStyles: Record<string, string> = {
@@ -24,7 +25,7 @@ const roleColors: Record<string, string> = {
   Mentor: "bg-success/10 text-success",
 };
 
-export default function TalentStaffPanel({ data, isLoading }: Props) {
+export default function TalentStaffPanel({ data, isLoading, onViewStaff }: Props) {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("All");
 
@@ -125,7 +126,15 @@ export default function TalentStaffPanel({ data, isLoading }: Props) {
                 <tr><td colSpan={5} className="px-6 py-8 text-center text-sm text-muted-foreground">No staff found.</td></tr>
               )}
               {filtered.map((s: any) => (
-                <tr key={s.id} className="hover:bg-secondary/20 transition-colors">
+                <tr
+                  key={s.id}
+                  className={cn("hover:bg-secondary/20 transition-colors", onViewStaff && "cursor-pointer group")}
+                  onClick={() => onViewStaff?.(s.user_id ?? s.id)}
+                  role={onViewStaff ? "button" : undefined}
+                  tabIndex={onViewStaff ? 0 : undefined}
+                  onKeyDown={onViewStaff ? (k => k.key === "Enter" && onViewStaff(s.user_id ?? s.id)) : undefined}
+                  aria-label={onViewStaff ? `View profile for ${s.full_name}` : undefined}
+                >
                   <td className="px-6 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-[10px] font-bold text-primary-foreground shrink-0">

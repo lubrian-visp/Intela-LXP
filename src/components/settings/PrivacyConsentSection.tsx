@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Shield, Info, Download, Clock, FileText, AlertTriangle, CheckCircle2, Users } from "lucide-react";
+import { Shield, Info, Download, Clock, FileText, AlertTriangle, CheckCircle2, Users, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useMyConsents, useUpdateConsent } from "@/hooks/useConsentRecords";
+import { format } from "date-fns";
 
 interface ConsentItem {
   id: string;
@@ -95,37 +97,23 @@ function ConsentList({ items, consents, grantDates, onToggle }: {
 
 export default function PrivacyConsentSection() {
   const { data: settings } = usePlatformSettings("general");
+  const { data: liveConsents = [], isLoading: consentsLoading } = useMyConsents();
+  const updateConsent = useUpdateConsent();
+  const [dsarOpen, setDsarOpen] = useState(false);
 
-  const [gdprConsents, setGdprConsents] = useState<Record<number, boolean>>({
-    0: true, 1: true, 2: true, 3: false, 4: false, 5: false,
-  });
+  const handleLiveToggle = async (purposeKey: string, checked: boolean) => {
+    await updateConsent.mutateAsync({ purposeKey, consented: checked });
+  };
+
+  // Keep legacy local state for GDPR tab (international display only)
+  const [gdprConsents, setGdprConsents] = useState<Record<number, boolean>>({ 0: true, 1: true, 2: true, 3: false, 4: false, 5: false });
   const [gdprDates, setGdprDates] = useState<Record<number, string>>({});
-
-  const [popiaConsentState, setPopiaConsentState] = useState<Record<number, boolean>>({
-    0: true, 1: true, 2: false, 3: false, 4: false, 5: false,
-  });
-  const [popiaDates, setPopiaDates] = useState<Record<number, string>>({});
-
   const handleGdprToggle = (index: number, checked: boolean) => {
     if (defaultConsents[index].isLocked) return;
     setGdprConsents((prev) => ({ ...prev, [index]: checked }));
-    if (checked) {
-      setGdprDates((prev) => ({ ...prev, [index]: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) }));
-    } else {
-      setGdprDates((prev) => { const c = { ...prev }; delete c[index]; return c; });
-    }
+    if (checked) setGdprDates(prev => ({ ...prev, [index]: new Date().toLocaleDateString("en-GB") }));
+    else setGdprDates(prev => { const c = { ...prev }; delete c[index]; return c; });
     toast({ title: checked ? "Consent granted" : "Consent withdrawn" });
-  };
-
-  const handlePopiaToggle = (index: number, checked: boolean) => {
-    if (popiaConsents[index].isLocked) return;
-    setPopiaConsentState((prev) => ({ ...prev, [index]: checked }));
-    if (checked) {
-      setPopiaDates((prev) => ({ ...prev, [index]: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) }));
-    } else {
-      setPopiaDates((prev) => { const c = { ...prev }; delete c[index]; return c; });
-    }
-    toast({ title: checked ? "PoPIA consent granted" : "PoPIA consent withdrawn" });
   };
 
   return (
@@ -170,12 +158,42 @@ export default function PrivacyConsentSection() {
                 </div>
               </div>
 
-              <ConsentList
-                items={popiaConsents}
-                consents={popiaConsentState}
-                grantDates={popiaDates}
-                onToggle={handlePopiaToggle}
-              />
+              {/* Live PoPIA consent toggles from DB */}
+              {consentsLoading ? (
+                <div className="flex items-center gap-2 p-4 text-muted-foreground text-xs">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading your consent records…
+                </div>
+              ) : (
+                <div className="p-5 space-y-3">
+                  {liveConsents.map(c => (
+                    <div key={c.key} className="flex items-start justify-between gap-4 p-3 rounded-lg border border-border/50 hover:bg-secondary/10 transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <p className="text-xs font-medium text-foreground">{c.label}</p>
+                          {c.required && <Badge className="text-[8px] bg-destructive/10 text-destructive border-0 shrink-0">Required</Badge>}
+                        </div>
+                        <p className="text-[10px] text-muted-foreground">{c.description}</p>
+                        {c.consented && c.consented_at && (
+                          <p className="text-[9px] text-success mt-1">
+                            ✓ Granted {format(new Date(c.consented_at), "d MMM yyyy")}
+                          </p>
+                        )}
+                        {!c.consented && c.withdrawn_at && (
+                          <p className="text-[9px] text-muted-foreground mt-1">
+                            Withdrawn {format(new Date(c.withdrawn_at), "d MMM yyyy")}
+                          </p>
+                        )}
+                      </div>
+                      <Switch
+                        checked={c.required ? true : c.consented}
+                        disabled={c.required || updateConsent.isPending}
+                        onCheckedChange={checked => handleLiveToggle(c.key, checked)}
+                        aria-label={c.label}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* PoPIA Data Subject Rights */}
               <div className="border-t border-border/30 pt-4">
@@ -195,17 +213,35 @@ export default function PrivacyConsentSection() {
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <Button variant="outline" size="sm" className="text-xs gap-1.5">
-                  <Download className="w-3 h-3" /> PoPIA Data Export (DSAR)
+              <div className="flex flex-wrap gap-3 pt-2">
+                <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => setDsarOpen(true)}>
+                  <Download className="w-3 h-3" /> Submit Data Request (DSAR)
                 </Button>
-                <Button variant="outline" size="sm" className="text-xs gap-1.5">
-                  <FileText className="w-3 h-3" /> Information Officer Contact
-                </Button>
-                <Button variant="outline" size="sm" className="text-xs gap-1.5">
-                  <Clock className="w-3 h-3" /> View Consent History
+                <Button variant="outline" size="sm" className="text-xs gap-1.5" onClick={() => window.open("mailto:privacy@intela.co.za")}>
+                  <FileText className="w-3 h-3" /> Contact Information Officer
                 </Button>
               </div>
+              {/* Inline DSAR mini-form */}
+              {dsarOpen && (
+                <div className="mt-3 p-4 rounded-xl border border-primary/20 bg-primary/5 space-y-3">
+                  <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <FileText className="w-3.5 h-3.5 text-primary" /> Quick DSAR Submission
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Under POPIA Section 23, you may request access to, correction of, or deletion of your personal information.
+                    We will respond within <strong>30 days</strong>.
+                  </p>
+                  <Button size="sm" className="text-xs gap-1.5" onClick={() => {
+                    window.open("/admin/popia", "_blank");
+                    setDsarOpen(false);
+                  }}>
+                    <CheckCircle2 className="w-3 h-3" /> Go to DSAR Portal →
+                  </Button>
+                  <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={() => setDsarOpen(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="gdpr" className="mt-4 space-y-4">

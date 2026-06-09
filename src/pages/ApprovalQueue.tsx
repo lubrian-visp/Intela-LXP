@@ -1,4 +1,5 @@
 import { CheckSquare, Clock, Search, CheckCircle, XCircle, Eye } from "lucide-react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { FadeIn } from "@/components/animations/MotionWrappers";
 import { Input } from "@/components/ui/input";
 import { useApprovalTasks, useUpdateApprovalTask, useRealtimeSync } from "@/hooks/useCoreData";
@@ -162,6 +163,7 @@ function ApprovalActionCell({ task }: { task: any }) {
 }
 
 export default function ApprovalQueue() {
+  usePageTitle("Approval Queue", "Platform Management");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const { data: tasks = [], isLoading } = useApprovalTasks();

@@ -1,4 +1,5 @@
 import { Users, TrendingUp, Search } from "lucide-react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { FadeIn } from "@/components/animations/MotionWrappers";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,6 +13,7 @@ import { maskNationalId } from "@/lib/privacyUtils";
 import { useState, useMemo } from "react";
 
 export default function SponsorLearners() {
+  usePageTitle("Sponsored Learners", "Sponsor Portal");
   const [search, setSearch] = useState("");
   const { user } = useAuth();
   const { data: enrolments = [], isLoading } = useEnrolments();

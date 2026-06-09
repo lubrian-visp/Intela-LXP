@@ -9,9 +9,10 @@ interface Props {
   learnerData: any;
   programmes: any[];
   isLoading: boolean;
+  onViewProgramme?: (programmeId: string) => void;
 }
 
-export default function TalentCapacityPanel({ staffData, learnerData, programmes, isLoading }: Props) {
+export default function TalentCapacityPanel({ staffData, learnerData, programmes, isLoading, onViewProgramme }: Props) {
   const capacityData = useMemo(() => {
     if (!staffData || !learnerData) return [];
     const { cohortStaff } = staffData;
@@ -68,7 +69,14 @@ export default function TalentCapacityPanel({ staffData, learnerData, programmes
         )}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {capacityData.map(prog => (
-            <div key={prog.id} className="bg-card rounded-xl shadow-card border border-border/50 p-5 space-y-3">
+            <div
+              key={prog.id}
+              className={`bg-card rounded-xl shadow-card border border-border/50 p-5 space-y-3${onViewProgramme ? " cursor-pointer hover:border-primary/20 hover:shadow-card-hover transition-all" : ""}`}
+              onClick={() => onViewProgramme?.(prog.id)}
+              role={onViewProgramme ? "button" : undefined}
+              tabIndex={onViewProgramme ? 0 : undefined}
+              onKeyDown={onViewProgramme ? (k => k.key === "Enter" && onViewProgramme(prog.id)) : undefined}
+            >
               <div className="flex items-start justify-between">
                 <div>
                   <h4 className="text-sm font-semibold text-foreground">{prog.title}</h4>

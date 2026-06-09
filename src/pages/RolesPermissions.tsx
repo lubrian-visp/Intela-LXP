@@ -2,7 +2,8 @@ import { Shield, Plus, Users, Lock, ChevronRight, Search, Edit2, Upload, Archive
 import { useState, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
-import { useRoleDefinitions, useUserRoleScopes, useDeactivateRole, useDeleteRole, RoleDefinition } from "@/hooks/useRoleDefinitions";
+import { useRoleDefinitions, useUserRoleScopes, useDeactivateRole, useDeleteRole, useAssignUserRole, RoleDefinition } from "@/hooks/useRoleDefinitions";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -59,6 +60,7 @@ function buildPermissionSet(permissions: Record<string, string> | null): Set<str
 }
 
 export default function RolesPermissions() {
+  usePageTitle("Roles & Permissions", "Super Admin");
   const { data: roles = [], isLoading } = useRoleDefinitions();
   const { data: scopes = [] } = useUserRoleScopes();
   const deactivateRole = useDeactivateRole();
@@ -69,6 +71,8 @@ export default function RolesPermissions() {
   const [showBulkDialog, setShowBulkDialog] = useState(false);
   const [roleToDelete, setRoleToDelete] = useState<RoleDefinition | null>(null);
   const [userSearch, setUserSearch] = useState("");
+  const [editingUser, setEditingUser] = useState<{ id: string; name: string; roles: string[] } | null>(null);
+  const assignRole = useAssignUserRole();
 
   // Fetch real user data for the Users tab — use profiles_safe view (RLS-aware, PoPIA-safe).
   // Direct queries on `profiles` are blocked by RLS for non-owners, which is why this tab appeared empty.
@@ -366,7 +370,12 @@ export default function RolesPermissions() {
                       )}
                     </td>
                     <td className="px-5 py-3 text-right">
-                      <button className="p-1.5 rounded-md hover:bg-secondary transition-colors">
+                      <button
+                        onClick={() => setEditingUser({ id: profile.user_id, name: profile.full_name ?? profile.email ?? "User", roles: userRoles })}
+                        className="p-1.5 rounded-md hover:bg-secondary transition-colors"
+                        aria-label={`Edit roles for ${profile.full_name ?? profile.email}`}
+                        title="Edit role assignments"
+                      >
                         <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
                       </button>
                     </td>
@@ -425,6 +434,57 @@ export default function RolesPermissions() {
       {/* Dialogs */}
       <CreateRoleDialog open={showCreateDialog} onOpenChange={setShowCreateDialog} existingRoles={roles} />
       <BulkImportDialog open={showBulkDialog} onOpenChange={setShowBulkDialog} roles={roles} />
+
+      {/* Edit User Roles dialog */}
+      <Dialog open={!!editingUser} onOpenChange={(o) => { if (!o) setEditingUser(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <Edit2 className="w-4 h-4 text-primary" /> Edit Role Assignments
+            </DialogTitle>
+          </DialogHeader>
+          {editingUser && (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Assign or remove roles for <strong className="text-foreground">{editingUser.name}</strong>.
+              </p>
+              <div className="space-y-2">
+                {roles.filter(r => r.is_active).map(r => {
+                  const hasRole = editingUser.roles.includes(r.base_role);
+                  return (
+                    <button
+                      key={r.id}
+                      onClick={async () => {
+                        if (!hasRole) {
+                          await assignRole.mutateAsync({ userId: editingUser.id, role: r.base_role as any });
+                          setEditingUser(prev => prev ? { ...prev, roles: [...prev.roles, r.base_role] } : null);
+                        }
+                      }}
+                      disabled={hasRole || assignRole.isPending}
+                      className={cn(
+                        "w-full flex items-center justify-between px-4 py-2.5 rounded-xl border text-sm transition-all",
+                        hasRole
+                          ? "bg-primary/5 border-primary/30 text-primary cursor-default"
+                          : "border-border hover:bg-secondary/50 hover:border-primary/20 text-foreground"
+                      )}
+                    >
+                      <span className="font-medium">{r.display_name}</span>
+                      {hasRole
+                        ? <Badge className="text-[9px] bg-primary/10 text-primary border-0">Assigned</Badge>
+                        : <span className="text-[10px] text-muted-foreground">Click to assign</span>
+                      }
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-muted-foreground border-t border-border/50 pt-3">
+                To remove a role, use the Bulk Import feature or contact a Super Admin to revoke via the database.
+              </p>
+              <Button onClick={() => setEditingUser(null)} className="w-full" variant="outline">Done</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={!!roleToDelete} onOpenChange={(o) => !o && setRoleToDelete(null)}>
         <AlertDialogContent>

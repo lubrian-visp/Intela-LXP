@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Loader2, Plus, Trash2, CreditCard, Tag, Globe2, Receipt, FileText, Coins } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -432,6 +433,7 @@ function InvoicesPanel() {
 
 // ─── Page ───────────────────────────────────────────────────
 export default function BillingConfig() {
+  usePageTitle("Billing Configuration", "Super Admin");
   return (
     <div className="space-y-6 animate-slide-up">
       <div>

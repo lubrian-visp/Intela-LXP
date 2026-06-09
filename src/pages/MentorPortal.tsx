@@ -6,11 +6,16 @@ import {
 import { cn } from "@/lib/utils";
 import { FadeIn } from "@/components/animations/MotionWrappers";
 import { useEnrolments, useCohorts, useRealtimeSync } from "@/hooks/useCoreData";
+import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 import CalendarWidget from "@/components/calendar/CalendarWidget";
 import { useCalendarEvents } from "@/hooks/useCalendarEvents";
 import { WelcomeBanner, KpiGrid, ActionButton } from "@/components/dashboard/DashboardShell";
 import { useNavigate } from "react-router-dom";
+import { usePageTitle } from "@/hooks/usePageTitle";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { ChevronRight } from "lucide-react";
 
 type MenteeStatus = "Active" | "At Risk" | "Excelling" | "Completed";
 
@@ -36,9 +41,11 @@ function getMenteeStatus(progress: number, status: string): MenteeStatus {
 }
 
 export default function MentorPortal() {
+  usePageTitle("Dashboard", "Mentor Portal");
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { data: calendarEvents = [] } = useCalendarEvents();
 
   const { data: enrolments, isLoading: loadingEnr } = useEnrolments();
@@ -46,15 +53,37 @@ export default function MentorPortal() {
 
   // Real-time cross-portal sync
   useRealtimeSync(["enrolments", "assessment_submissions", "notifications"]);
-  // Filter enrolments that have a mentor assigned
+
+  // Fetch learner profiles for name display
+  const learnerIds = useMemo(
+    () => [...new Set((enrolments ?? []).filter(e => e.mentor_id === user?.id).map(e => e.learner_id))],
+    [enrolments, user?.id]
+  );
+  const { data: profiles = [] } = useQuery({
+    queryKey: ["mentor-profiles", learnerIds.join(",")],
+    enabled: learnerIds.length > 0,
+    queryFn: async () => {
+      const { data } = await supabase.from("profiles").select("user_id, full_name").in("user_id", learnerIds);
+      return data ?? [];
+    },
+    staleTime: 60_000,
+  });
+  const profileMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    (profiles as any[]).forEach(p => { m[p.user_id] = p.full_name || "Unnamed Learner"; });
+    return m;
+  }, [profiles]);
+
+  // FIXED: Only show mentees assigned to the current mentor (was showing ALL)
   const mentees = useMemo(() => {
-    return (enrolments ?? []).filter(e => e.mentor_id != null).map(e => {
+    return (enrolments ?? []).filter(e => e.mentor_id === user?.id).map(e => {
       const cohort = (cohorts ?? []).find(c => c.id === e.cohort_id);
       const progress = e.progress_percentage ?? 0;
       const menteeStatus = getMenteeStatus(progress, e.status);
       return {
         id: e.id,
         learnerId: e.learner_id,
+        learnerName: profileMap[e.learner_id] ?? `Learner ${e.learner_id.slice(0, 6)}`,
         programme: (cohort as any)?.programmes?.title ?? "—",
         progress,
         status: menteeStatus,
@@ -101,8 +130,8 @@ export default function MentorPortal() {
         subtitle="Guide your mentees, track goals, and manage sessions."
         actions={
           <>
-            <ActionButton icon={Calendar} label="Schedule Session" onClick={() => navigate("/sessions")} />
-            <ActionButton icon={MessageSquare} label="Discussions" onClick={() => navigate("/discussions")} primary />
+            <ActionButton icon={Calendar} label="Schedule Session" onClick={() => navigate("/mentor/sessions")} />
+            <ActionButton icon={MessageSquare} label="Messages" onClick={() => navigate("/mentor/messages")} primary />
           </>
         }
       />
@@ -136,11 +165,12 @@ export default function MentorPortal() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-secondary/30">
-                <th className="text-left px-6 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Learner ID</th>
+                <th className="text-left px-6 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Learner</th>
                 <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Programme</th>
                 <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Progress</th>
                 <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
                 <th className="text-left px-4 py-3 text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Enrolled</th>
+                <th className="px-4 py-3" aria-label="Actions" />
               </tr>
             </thead>
             <tbody className="divide-y divide-border/50">
@@ -150,9 +180,17 @@ export default function MentorPortal() {
                 filtered.map(m => {
                   const StatusIcon = menteeStatusIcons[m.status];
                   return (
-                    <tr key={m.id} className="hover:bg-secondary/20 transition-colors">
+                    <tr
+                      key={m.id}
+                      className="hover:bg-secondary/20 transition-colors cursor-pointer group"
+                      onClick={() => navigate(`/learner/profile/${m.learnerId}`)}
+                      role="button" tabIndex={0}
+                      onKeyDown={k => k.key === "Enter" && navigate(`/learner/profile/${m.learnerId}`)}
+                      aria-label={`View profile for ${m.learnerName}`}
+                    >
                       <td className="px-6 py-3">
-                        <span className="font-mono text-xs text-foreground">{m.learnerId.slice(0, 8)}…</span>
+                        <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">{m.learnerName}</p>
+                        <p className="text-[10px] text-muted-foreground font-mono">{m.learnerId.slice(0, 8)}…</p>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">{m.programme}</td>
                       <td className="px-4 py-3">
@@ -170,6 +208,9 @@ export default function MentorPortal() {
                       </td>
                       <td className="px-4 py-3 text-[11px] text-muted-foreground">
                         {m.enrolledAt ? new Date(m.enrolledAt).toLocaleDateString() : "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <ChevronRight className="w-3.5 h-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                       </td>
                     </tr>
                   );

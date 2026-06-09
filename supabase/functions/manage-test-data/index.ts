@@ -88,7 +88,7 @@ Deno.serve(async (req) => {
         "discussion_threads","moderation_items",       "assessment_submissions",
         "quiz_options",     "quiz_questions",          "learner_study_log",
         "learner_streaks",  "learner_badges",          "issued_credentials",
-        "activity_grades",  "portfolio_evidence",      "enrolments",
+        "activity_grades",  "learner_registrations",   "portfolio_evidence",      "enrolments",
         "cohort_staff_assignments", "training_sessions","announcements",
         "notifications",    "content_blocks",          "programme_modules",
         "cohorts",          "assessments",             "rubric_criteria",
@@ -173,11 +173,18 @@ Deno.serve(async (req) => {
       // ── §1  USERS ──────────────────────────────────────────────────────────
       step = "users";
 
-      const alex   = await createUser("alex",    "[TEST] Alex Johnson",    "learner",     "Learner — In Progress");
-      const priya  = await createUser("priya",   "[TEST] Priya Naidoo",    "learner",     "Learner — High Achiever");
-      const sipho  = await createUser("sipho",   "[TEST] Sipho Dlamini",   "learner",     "Learner — Needs Support");
-      const fatima = await createUser("fatima",  "[TEST] Dr. Fatima Osei", "facilitator", "Senior Facilitator");
-      const marcus = await createUser("marcus",  "[TEST] Marcus Webb",     "assessor",    "Lead Assessor");
+      // Core L&D roles
+      const alex   = await createUser("alex",    "[TEST] Alex Johnson",      "learner",             "Learner — In Progress");
+      const priya  = await createUser("priya",   "[TEST] Priya Naidoo",      "learner",             "Learner — High Achiever");
+      const sipho  = await createUser("sipho",   "[TEST] Sipho Dlamini",     "learner",             "Learner — Needs Support");
+      const fatima = await createUser("fatima",  "[TEST] Dr. Fatima Osei",   "facilitator",         "Senior Facilitator");
+      const marcus = await createUser("marcus",  "[TEST] Marcus Webb",       "assessor",            "Lead Assessor");
+      // Management roles (sync with Facilitator + Assessor)
+      const nomsa  = await createUser("nomsa",   "[TEST] Nomsa Khumalo",     "programme_manager",   "Senior Programme Manager");
+      const david  = await createUser("david",   "[TEST] David Okonkwo",     "operations",          "Operations Manager");
+
+      // 4th learner — pending registration (Operations must approve & enrol)
+      const thabo  = await createUser("thabo",   "[TEST] Thabo Molefe",      "learner",             "Learner — Pending Enrolment");
 
       // ── §2  PROGRAMME + MODULES ────────────────────────────────────────────
       step = "programme";
@@ -186,7 +193,10 @@ Deno.serve(async (req) => {
         id: progId, title: "[TEST] Project Leadership Fundamentals",
         description: "Comprehensive seed programme. Safe to delete.",
         status: "active", nqf_level: 5, credits: 120,
-        duration_months: 6, created_by: requestedBy, tenant_id: TENANT_ID,
+        duration_months: 6,
+        manager_id: nomsa.userId,      // PM owns the programme
+        created_by: nomsa.userId,      // PM created it
+        tenant_id: TENANT_ID,
       }, "Programme");
       track("programmes", progId, "[TEST] Programme: Project Leadership Fundamentals");
 
@@ -227,7 +237,7 @@ Deno.serve(async (req) => {
         id: asmQuiz, programme_id: progId, module_id: mod1,
         title: "[TEST] Week 1 Knowledge Check (Auto-Graded Quiz)",
         description: "MCQ quiz automatically scored by the system. Tests PM fundamentals.",
-        assessment_category: "formative", assessment_type: "quiz",
+        assessment_category: "formative", assessment_type: "formative",
         max_score: 10, pass_mark: 6, weighting: 10,
         due_date: daysFromNow(5).slice(0,10),
         status: "draft", created_by: requestedBy, tenant_id: TENANT_ID,
@@ -240,7 +250,7 @@ Deno.serve(async (req) => {
         id: asmFormative, programme_id: progId, module_id: mod1,
         title: "[TEST] RACI Matrix Assignment",
         description: "Learners produce a RACI matrix for a given project scenario.",
-        assessment_category: "formative", assessment_type: "assignment",
+        assessment_category: "formative", assessment_type: "formative",
         max_score: 20, pass_mark: 12, weighting: 20,
         due_date: daysFromNow(10).slice(0,10),
         status: "draft", created_by: requestedBy, tenant_id: TENANT_ID,
@@ -253,7 +263,7 @@ Deno.serve(async (req) => {
         id: asmSummative, programme_id: progId, module_id: mod2,
         title: "[TEST] Stakeholder Engagement Plan",
         description: "Summative: full stakeholder analysis and communication plan.",
-        assessment_category: "summative", assessment_type: "assignment",
+        assessment_category: "summative", assessment_type: "summative",
         max_score: 50, pass_mark: 30, weighting: 50,
         due_date: daysFromNow(21).slice(0,10),
         status: "draft", requires_moderation: true,
@@ -267,7 +277,7 @@ Deno.serve(async (req) => {
         id: asmJournal, programme_id: progId, module_id: mod2,
         title: "[TEST] Reflective Practice Journal",
         description: "Weekly reflection journal on leadership learnings.",
-        assessment_category: "formative", assessment_type: "reflection_journal",
+        assessment_category: "formative", assessment_type: "portfolio",
         max_score: 10, pass_mark: 6, weighting: 10,
         due_date: daysFromNow(7).slice(0,10),
         status: "draft", created_by: requestedBy, tenant_id: TENANT_ID,
@@ -431,7 +441,7 @@ Deno.serve(async (req) => {
       await ins("assessment_submissions", {
         id: subPriyaSummative, assessment_id: asmSummative,
         learner_id: priya.userId, enrolment_id: enrolPriya,
-        status: "moderation", score: 44, submitted_at: daysAgo(5),
+        status: "under_review", score: 44, submitted_at: daysAgo(5),
         feedback: "Comprehensive stakeholder map with clear communication strategies. Excellent use of the power-interest grid. Recommended for full pass.",
         assessor_id: marcus.userId, assessed_at: daysAgo(2),
         moderation_status: "pending",
@@ -454,7 +464,7 @@ Deno.serve(async (req) => {
       await ins("assessment_submissions", {
         id: subPriyaJournal, assessment_id: asmJournal,
         learner_id: priya.userId, enrolment_id: enrolPriya,
-        status: "graded", score: 9, submitted_at: daysAgo(7),
+        status: "competent", score: 9, submitted_at: daysAgo(7),
         feedback: "Excellent reflections — you've clearly internalised the leadership framework. Your connection to real-world project experience is impressive.",
         assessor_id: marcus.userId, assessed_at: daysAgo(5),
         moderation_status: "not_required",
@@ -587,6 +597,31 @@ Deno.serve(async (req) => {
         flagged_at: daysAgo(2),
       });
       track("moderation_items", modItemId, "Moderation item: Priya's summative (pending QA review)");
+
+      // ── §8b  LEARNER REGISTRATION (Operations pipeline) ────────────────────
+      // Thabo has applied — Operations (David) must approve and enrol him.
+      // This tests: Ops approves → learner enrolled → Facilitator sees in cohort.
+      step = "learner_registrations";
+      const thaboRegId = uid();
+      await ins("learner_registrations", {
+        id: thaboRegId,
+        full_name: "[TEST] Thabo Molefe",
+        email: thabo.email,
+        programme_id: progId,
+        programme_name: "[TEST] Project Leadership Fundamentals",
+        status: "pending",
+        registration_method: "self-registration",
+        registered_by: thabo.userId,
+        user_id: thabo.userId,
+        tenant_id: TENANT_ID,
+        gender: "Male",
+        country: "South Africa",
+        education_level: "diploma",
+        notes: "[TEST] Self-registered online. Documents uploaded. Awaiting Operations review and approval.",
+        sla_started_at: daysAgo(2),
+        sla_deadline_at: daysFromNow(3),
+      });
+      track("learner_registrations", thaboRegId, "Thabo Molefe — pending registration (awaiting Ops approval)");
 
       // ── §9  TRAINING SESSIONS ───────────────────────────────────────────────
       step = "training_sessions";
@@ -755,6 +790,15 @@ Deno.serve(async (req) => {
         { user: marcus.userId, title: "[TEST] New Submission: Alex Johnson — RACI Matrix",body: "Alex Johnson has submitted the RACI Matrix assignment for grading. Due date: in 10 days.", cat: "submission", url: "/assessor/queue" },
         { user: marcus.userId, title: "[TEST] Moderation: Priya Naidoo — Summative",      body: "Priya Naidoo's Stakeholder Engagement Plan (44/50) has been escalated for QA moderation.", cat: "moderation", url: "/assessor" },
         { user: marcus.userId, title: "[TEST] Quiz Auto-Graded: Alex Johnson",            body: "The system has auto-graded Alex Johnson's Week 1 Quiz (70%). 1 short-answer question requires your review.", cat: "grade", url: "/assessor/queue" },
+        // Nomsa (Programme Manager) — sees the full programme picture
+        { user: nomsa.userId,  title: "[TEST] Cohort Progress Report — PLF_Group_Jun2026", body: "Your cohort has 3 active learners. Average progress: 43%. 1 learner at risk (Sipho — 15%). Fatima has recorded 8 activity grades this week.", cat: "system",     url: "/programme-manager" },
+        { user: nomsa.userId,  title: "[TEST] Assessment Queue: 1 Pending Grade",          body: "Alex Johnson's RACI Matrix (formative) is awaiting grading by Marcus Webb. Summative moderation for Priya Naidoo is in progress.", cat: "submission", url: "/programme-manager" },
+        { user: nomsa.userId,  title: "[TEST] ⚠️ At-Risk Learner: Sipho Dlamini (15%)",   body: "Sipho Dlamini is at 15% progress and has a resubmission pending. Fatima (Facilitator) has been notified. Consider intervention.", cat: "alert",      url: "/facilitator/learner-progress" },
+        { user: nomsa.userId,  title: "[TEST] New Learner Registration — Thabo Molefe",    body: "Thabo Molefe has applied to enrol in Project Leadership Fundamentals. Registration pending Operations approval.", cat: "system",     url: "/learner/onboarding" },
+        // David (Operations) — manages learner pipeline
+        { user: david.userId,  title: "[TEST] 🆕 Pending Registration: Thabo Molefe",     body: "Thabo Molefe has submitted a registration for Project Leadership Fundamentals. Action required: review documents and approve or reject.", cat: "submission", url: "/learner/onboarding" },
+        { user: david.userId,  title: "[TEST] Cohort Capacity: PLF_Group_Jun2026",         body: "PLF_Group_Jun2026 has 3/30 learners enrolled (10% capacity). 1 pending registration (Thabo Molefe) awaiting your approval.", cat: "system",     url: "/learner/onboarding" },
+        { user: david.userId,  title: "[TEST] Programme Pipeline Summary",                 body: "Project Leadership Fundamentals: 3 active learners, 43% avg progress, 1 at-risk. 1 pending registration. Facilitator: Dr. Fatima Osei. Assessor: Marcus Webb.", cat: "system", url: "/operations" },
       ];
 
       for (const n of notifs) {
@@ -829,7 +873,7 @@ Deno.serve(async (req) => {
         id: credPriya, learner_id: priya.userId, programme_id: progId,
         enrolment_id: enrolPriya,
         title: "[TEST] Project Leadership Fundamentals — Module 1 Completion",
-        credential_type: "completion_certificate", status: "active",
+        credential_type: "certificate", status: "active",
         issued_at: daysAgo(1), issued_by: requestedBy,
         blockchain_hash: "0xTEST" + Math.random().toString(16).slice(2, 18),
       });
@@ -880,43 +924,48 @@ Deno.serve(async (req) => {
         password: PASSWORD,
         records_created: reg.length,
         users: {
-          learner_alex:        { email: alex.email,   role: "learner",     name: "[TEST] Alex Johnson",    progress: "45%", note: "Pending RACI submission + auto-graded quiz" },
-          learner_priya:       { email: priya.email,  role: "learner",     name: "[TEST] Priya Naidoo",    progress: "70%", note: "Graded summative in moderation + credential issued" },
-          learner_sipho:       { email: sipho.email,  role: "learner",     name: "[TEST] Sipho Dlamini",   progress: "15%", note: "At-risk + resubmission required" },
-          facilitator_fatima:  { email: fatima.email, role: "facilitator", name: "[TEST] Dr. Fatima Osei", note: "Assigned to cohort, posted announcements, recorded activity grades" },
-          assessor_marcus:     { email: marcus.email, role: "assessor",    name: "[TEST] Marcus Webb",     note: "Assigned to cohort, graded Priya + Sipho, pending Alex" },
+          learner_alex:            { email: alex.email,   role: "learner",           name: "[TEST] Alex Johnson",    progress: "45%", note: "Pending RACI + auto-graded quiz" },
+          learner_priya:           { email: priya.email,  role: "learner",           name: "[TEST] Priya Naidoo",    progress: "70%", note: "Summative under review + credential + 2 badges" },
+          learner_sipho:           { email: sipho.email,  role: "learner",           name: "[TEST] Sipho Dlamini",   progress: "15%", note: "At-risk + resubmission required" },
+          learner_thabo:           { email: thabo.email,  role: "learner",           name: "[TEST] Thabo Molefe",    progress: "0%",  note: "Registration PENDING — Operations must approve & enrol" },
+          facilitator_fatima:      { email: fatima.email, role: "facilitator",       name: "[TEST] Dr. Fatima Osei", note: "Cohort assigned · 8 activity grades · 3 announcements" },
+          assessor_marcus:         { email: marcus.email, role: "assessor",          name: "[TEST] Marcus Webb",     note: "Cohort assigned · graded Priya & Sipho · Alex pending" },
+          programme_manager_nomsa: { email: nomsa.email,  role: "programme_manager", name: "[TEST] Nomsa Khumalo",   note: "Owns programme · sees cohort stats · assessor queue · at-risk alerts" },
+          operations_david:        { email: david.email,  role: "operations",        name: "[TEST] David Okonkwo",   note: "Manages learner pipeline · Thabo registration pending his approval" },
         },
         programme: "[TEST] Project Leadership Fundamentals",
         cohort:    "[TEST] PLF_Group_Jun2026",
         summary: {
-          users:               5,
-          assessments:         4,
-          quiz_questions:      questions.length,
-          submissions:         5,
-          quiz_responses:      questions.length,
-          activity_grades:     activityGrades.length,
-          moderation_items:    1,
-          training_sessions:   sessions.length,
-          announcements:       announcements.length,
-          discussion_threads:  3,
-          discussion_posts:    7,
-          notifications:       notifs.length,
-          badges:              3,
-          learner_badges:      3,
-          credentials:         1,
-          streaks:             3,
+          users:                8,
+          assessments:          4,
+          quiz_questions:       questions.length,
+          submissions:          5,
+          activity_grades:      activityGrades.length,
+          learner_registrations:1,
+          moderation_items:     1,
+          training_sessions:    sessions.length,
+          announcements:        announcements.length,
+          discussion_threads:   3,
+          discussion_posts:     7,
+          notifications:        notifs.length,
+          badges:               3,
+          credentials:          1,
+          streaks:              3,
         },
         scenarios: [
-          "Log in as Alex     → see pending RACI, quiz result breakdown, 4-day streak, notifications",
-          "Log in as Priya    → see graded results, credential in wallet, 2 badges, 8-day streak",
-          "Log in as Sipho    → see resubmit alert with feedback, at-risk status, facilitator note",
-          "Log in as Fatima   → see all 3 learners in cohort, at-risk alert for Sipho, pending grade for Alex",
-          "Log in as Marcus   → see Alex's submission in queue, Priya in moderation, quiz short-answer pending",
-          "Cross-role:        → Facilitator posts announcement → all learners get notification",
-          "Cross-role:        → Assessor grades Alex → Alex sees grade in My Grades",
-          "Cross-role:        → Moderator reviews Priya's item → Assessor sees rejection/approval",
+          "Log in as Alex (Learner)    → pending RACI, auto-graded quiz results, 4-day streak",
+          "Log in as Priya (Learner)   → summative under review, credential, 2 badges, 8-day streak",
+          "Log in as Sipho (Learner)   → resubmit alert, at-risk (15%), Fatima's guidance in discussions",
+          "Log in as Fatima (Facilitator) → 3 learners in cohort, at-risk Sipho, pending grade for Alex",
+          "Log in as Marcus (Assessor) → Alex pending in queue, Priya under review, quiz short-answer flagged",
+          "Log in as Nomsa (PM)        → programme dashboard: cohort stats, assessor queue, at-risk alert, Thabo registration pending",
+          "Log in as David (Ops)       → learner onboarding: Thabo pending approval, cohort at 10% capacity",
+          "Cross-role 1  → David approves Thabo → Thabo enrolled → Fatima sees 4th learner in cohort",
+          "Cross-role 2  → Marcus grades Alex RACI → Alex + Nomsa (PM) get notified",
+          "Cross-role 3  → Moderator reviews Priya → Marcus sees result → Nomsa sees final grade",
+          "Cross-role 4  → Fatima records activity grade → Alex sees it → Nomsa sees in programme overview",
         ],
-        message: `Seeded ${reg.length} records for 5 test users. Password for all accounts: ${PASSWORD}`,
+        message: `Seeded ${reg.length} records for 8 test users. Password for all: ${PASSWORD}`,
       });
     }
 

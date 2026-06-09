@@ -459,6 +459,14 @@ export function useCreateSubmission() {
     mutationFn: async (input: TablesInsert<"assessment_submissions">) => {
       const { data, error } = await supabase.from("assessment_submissions").insert(input).select().single();
       if (error) throw error;
+      // Audit log: learner submitted an assessment
+      supabase.from("onboarding_audit_log").insert({
+        action:      "assessment_submitted",
+        entity_type: "assessment_submission",
+        entity_id:   (data as any)?.id,
+        performed_by: input.learner_id,
+        details: { assessment_id: input.assessment_id, status: input.status },
+      }).then(() => {});
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["assessment_submissions"] }),
@@ -471,9 +479,29 @@ export function useUpdateSubmission() {
     mutationFn: async ({ id, ...updates }: TablesUpdate<"assessment_submissions"> & { id: string }) => {
       const { data, error } = await supabase.from("assessment_submissions").update(updates).eq("id", id).select().single();
       if (error) throw error;
+      // Audit log: assessor graded a submission
+      if (updates.status && ["competent","not_yet_competent","resubmit"].includes(updates.status as string)) {
+        supabase.from("onboarding_audit_log").insert({
+          action:      "assessment_graded",
+          entity_type: "assessment_submission",
+          entity_id:   id,
+          performed_by: updates.assessor_id ?? null,
+          details: { new_status: updates.status, score: updates.score },
+        }).then(() => {});
+      }
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["assessment_submissions"] }),
+    onSuccess: (data: any) => {
+      // Invalidate assessment submissions cache
+      qc.invalidateQueries({ queryKey: ["assessment_submissions"] });
+      // Also invalidate the learner profile query so cross-portal grade updates
+      // are reflected immediately without requiring a manual refresh
+      if (data?.learner_id) {
+        qc.invalidateQueries({ queryKey: ["learner_profile", data.learner_id] });
+      }
+      // Invalidate gradebook and unified gradebook views
+      qc.invalidateQueries({ queryKey: ["unified_gradebook"] });
+    },
   });
 }
 

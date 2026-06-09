@@ -1,4 +1,5 @@
 import { FileBarChart, Users, TrendingUp, Award, DollarSign } from "lucide-react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { FadeIn, StaggerContainer, StaggerItem } from "@/components/animations/MotionWrappers";
 import { useEnrolments, useCredentials } from "@/hooks/useCoreData";
@@ -8,6 +9,7 @@ import { useMemo } from "react";
 import { useSDProfile, useSDExpenditures, calculateExpenditureSummary } from "@/hooks/useSponsorSD";
 
 export default function SponsorReports() {
+  usePageTitle("Reports", "Sponsor Portal");
   const { user } = useAuth();
   const { data: enrolments = [], isLoading } = useEnrolments();
   const { data: credentials = [] } = useCredentials();

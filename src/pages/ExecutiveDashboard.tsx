@@ -1,4 +1,5 @@
 import { FadeIn, SlideInLeft as SlideIn } from "@/components/animations/MotionWrappers";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -50,6 +51,7 @@ function MetricCard({
 }
 
 export default function ExecutiveDashboard() {
+  usePageTitle("Executive Dashboard", "Intela LXP");
   const { data, isLoading } = useExecutiveDashboard();
   const { data: auditIssues = [] } = useDataQualityAudit();
 

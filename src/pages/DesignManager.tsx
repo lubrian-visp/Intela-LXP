@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Palette, Menu as MenuIcon, FileText, Layout, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FadeIn } from "@/components/animations/MotionWrappers";
@@ -9,6 +10,7 @@ import { DesignManagerFrontpageTab } from "@/components/design-manager/DesignMan
 type DesignTab = "menus" | "pages" | "frontpage";
 
 export default function DesignManager() {
+  usePageTitle("Design Manager", "Super Admin");
   const [activeTab, setActiveTab] = useState<DesignTab>("menus");
 
   const tabs: { key: DesignTab; label: string; icon: any }[] = [

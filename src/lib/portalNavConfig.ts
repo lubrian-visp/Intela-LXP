@@ -375,26 +375,35 @@ export const domainPortals: Record<DomainKey, DomainPortalConfig> = {
       {
         title: "Overview",
         items: [
-          { label: "Talent Dashboard", icon: LayoutDashboard, path: "__DASHBOARD__", roles: ["talent_manager"] },
-          { label: "Calendar", icon: Calendar, path: "/calendar", roles: ["talent_manager"] },
-          { label: "Workforce Analytics", icon: BarChart3, path: "/analytics", roles: ["talent_manager"] },
+          { label: "Talent Dashboard",    icon: LayoutDashboard, path: "__DASHBOARD__",  roles: ["talent_manager"] },
+          { label: "Calendar",            icon: Calendar,         path: "/calendar",      roles: ["talent_manager"] },
+          { label: "Workforce Analytics", icon: BarChart3,        path: "/analytics",     roles: ["talent_manager"] },
         ],
       },
       {
         title: "Workforce",
         items: [
-          { label: "Talent Pipeline",     icon: TrendingUp, path: "/talent",            roles: ["talent_manager"] },
-          { label: "Skills Gap Analysis", icon: PieChart,   path: "/talent",            roles: ["talent_manager"] },
-          { label: "Succession Planning", icon: Users,      path: "/talent",            roles: ["talent_manager"] },
-          { label: "Admin Staff Pool",    icon: Briefcase,  path: "/admin/staff-pool",  roles: ["talent_manager"] },
+          { label: "Talent Pipeline",     icon: TrendingUp,  path: "/talent",           roles: ["talent_manager"] },
+          { label: "Skills Gap Analysis", icon: PieChart,    path: "/talent",           roles: ["talent_manager"] },
+          { label: "Succession Planning", icon: Users,       path: "/talent",           roles: ["talent_manager"] },
+          { label: "Admin Staff Pool",    icon: Briefcase,   path: "/admin/staff-pool", roles: ["talent_manager"] },
+          { label: "L&D Practitioner Pool", icon: UserCheck, path: "/ld-pool",          roles: ["talent_manager"] },
         ],
       },
       {
         title: "Learner Tracking",
         items: [
-          { label: "Learner Progress", icon: BarChart3, path: "/analytics", roles: ["talent_manager"] },
-          { label: "Completion Reports", icon: FileBarChart, path: "/analytics", roles: ["talent_manager"] },
-          { label: "Credential Verification", icon: Award, path: "/credentials", roles: ["talent_manager"] },
+          { label: "Learner Progress",        icon: BarChart3,   path: "/analytics",    roles: ["talent_manager"] },
+          { label: "Completion Reports",      icon: FileBarChart,path: "/analytics",    roles: ["talent_manager"] },
+          { label: "Credential Verification", icon: Award,       path: "/credentials",  roles: ["talent_manager"] },
+        ],
+      },
+      {
+        title: "Governance",
+        items: [
+          // Talent Manager now has visibility of approval queue (read-only, for programme oversight)
+          { label: "Approval Queue",          icon: CheckSquare, path: "/approvals",    roles: ["talent_manager"] },
+          { label: "Learner Onboarding",      icon: UserPlus,    path: "/learner/onboarding", roles: ["talent_manager"] },
         ],
       },
 

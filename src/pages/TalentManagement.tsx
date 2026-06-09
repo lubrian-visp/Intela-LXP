@@ -85,17 +85,20 @@ export default function TalentManagement() {
     ];
 
     // Skills / programme gap data
+    // Demand = active + pending enrolments (actual demand from learners)
+    // Supply  = % of enrolled learners who have completed (fulfilment rate)
     const skills = programmes.map((p: any) => {
-      const programmeEnrolments = enrolments.filter((e: any) => {
-        const cohort = e.cohorts as any;
-        return cohort?.programme_id === p.id;
-      });
-      const supply = programmeEnrolments.length;
-      const completedPct = supply > 0
-        ? Math.round((programmeEnrolments.filter((e: any) => e.status === "completed").length / supply) * 100)
-        : 0;
-      return { skill: p.title, demand: Math.min(supply * 2, 100), supply: completedPct };
-    }).filter((s: any) => s.demand > 0 || s.supply > 0).slice(0, 5);
+      const progEnrolments = enrolments.filter((e: any) => (e.cohorts as any)?.programme_id === p.id);
+      const active    = progEnrolments.filter((e: any) => ["active","enrolled","pending"].includes(e.status)).length;
+      const completed = progEnrolments.filter((e: any) => e.status === "completed").length;
+      const total     = progEnrolments.length;
+      // Demand: normalise active enrolments against a 30-seat benchmark (adjustable)
+      const BENCHMARK = 30;
+      const demandPct  = Math.min(Math.round((active / BENCHMARK) * 100), 100);
+      // Supply: completion rate among enrolled
+      const supplyPct  = total > 0 ? Math.round((completed / total) * 100) : 0;
+      return { skill: p.title, demand: demandPct, supply: supplyPct, active, completed, total };
+    }).filter((s: any) => s.total > 0).slice(0, 5);
 
     return { talentPool: pool, pipeline: pipelineCounts, stats: computedStats, skillsData: skills };
   }, [learnerQuery.data, programmeQuery.data]);

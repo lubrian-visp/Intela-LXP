@@ -11,6 +11,7 @@ interface Props {
   data: any;
   programmes: any[];
   isLoading: boolean;
+  onViewLearner?: (learnerId: string) => void;
 }
 
 const statusStyles: Record<string, string> = {
@@ -21,7 +22,7 @@ const statusStyles: Record<string, string> = {
   pending: "bg-warning/10 text-warning",
 };
 
-export default function TalentLearnerPipeline({ data, programmes, isLoading }: Props) {
+export default function TalentLearnerPipeline({ data, programmes, isLoading, onViewLearner }: Props) {
   const [search, setSearch] = useState("");
   const [progFilter, setProgFilter] = useState("All");
 
@@ -154,7 +155,14 @@ export default function TalentLearnerPipeline({ data, programmes, isLoading }: P
                 const status = bestEnrolment?.status ?? "unknown";
                 const programmeName = (bestEnrolment?.cohorts as any)?.programmes?.title ?? "—";
                 return (
-                  <tr key={l.id} className="hover:bg-secondary/20 transition-colors">
+                  <tr
+                    key={l.id}
+                    className={`hover:bg-secondary/20 transition-colors${onViewLearner ? " cursor-pointer group" : ""}`}
+                    onClick={() => onViewLearner?.(l.id)}
+                    role={onViewLearner ? "button" : undefined}
+                    tabIndex={onViewLearner ? 0 : undefined}
+                    onKeyDown={onViewLearner ? (k => k.key === "Enter" && onViewLearner(l.id)) : undefined}
+                  >
                     <td className="px-6 py-3">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-info flex items-center justify-center text-[10px] font-bold text-info-foreground shrink-0">

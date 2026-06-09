@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Server, Database, Shield, RefreshCw, Activity, Settings, AlertTriangle, CheckCircle2, Terminal, ArrowUpRight, Users, BookOpen, ToggleLeft } from "lucide-react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,6 +13,7 @@ import { WelcomeBanner, KpiGrid, ActionButton } from "@/components/dashboard/Das
 import { useNavigate } from "react-router-dom";
 
 export default function SystemsAdminPortal() {
+  usePageTitle("Systems Admin", "Platform Management");
   const [activeTab, setActiveTab] = useState<"overview" | "services" | "logs" | "integrations">("overview");
   const navigate = useNavigate();
   const { data: calendarEvents = [] } = useCalendarEvents();

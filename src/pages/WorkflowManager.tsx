@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Loader2, Plus, Workflow, Play, Trash2, Edit2, ChevronRight, CheckCircle2, XCircle, Clock, Zap, Shield, Bell, GitBranch, ClipboardList, List, LayoutGrid, BarChart3, AlertTriangle, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,6 +47,7 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 export default function WorkflowManager() {
+  usePageTitle("Workflow Engine", "Super Admin");
   const [tab, setTab] = useState("templates");
   const [createOpen, setCreateOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<string | null>(null);
@@ -205,7 +207,8 @@ export default function WorkflowManager() {
                           </p>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button size="sm" variant="ghost" className="text-[10px] h-7 gap-1">
+                          <Button size="sm" variant="ghost" className="text-[10px] h-7 gap-1"
+                            onClick={(e) => { e.stopPropagation(); setViewingInstance(inst); }}>
                             <Eye className="w-3 h-3" /> View
                           </Button>
                           <Badge variant="outline" className={STATUS_BADGE[inst.status] || ""}>
@@ -253,7 +256,8 @@ export default function WorkflowManager() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button size="sm" variant="ghost" className="text-[10px] h-7 gap-1">
+                      <Button size="sm" variant="ghost" className="text-[10px] h-7 gap-1"
+                        onClick={(e) => { e.stopPropagation(); setViewingInstance(inst); setTab("active"); }}>
                         <Eye className="w-3 h-3" /> View
                       </Button>
                       <Badge variant="outline" className={STATUS_BADGE[inst.status] || ""}>

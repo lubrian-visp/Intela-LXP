@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Users, GraduationCap, TrendingUp, BarChart3, Award, UserCheck } from "lucide-react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FadeIn } from "@/components/animations/MotionWrappers";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -11,6 +12,7 @@ import { WelcomeBanner, KpiGrid, ActionButton } from "@/components/dashboard/Das
 import { useNavigate } from "react-router-dom";
 
 export default function TalentManagerPortal() {
+  usePageTitle("Dashboard", "Talent Manager Portal");
   const navigate = useNavigate();
   const staffQuery = useStaffOverview();
   const learnerQuery = useLearnerPipeline();
@@ -42,7 +44,8 @@ export default function TalentManagerPortal() {
         actions={
           <>
             <ActionButton icon={Users} label="Staff Directory" onClick={() => navigate("/staff/onboarding")} />
-            <ActionButton icon={UserCheck} label="Allocate Staff" onClick={() => navigate("/admin/users")} primary />
+            {/* Fixed: was /admin/users (Super Admin domain) → talent-manager staff pool */}
+            <ActionButton icon={UserCheck} label="Allocate Staff" onClick={() => navigate("/ld-pool")} primary />
           </>
         }
       />
@@ -57,15 +60,15 @@ export default function TalentManagerPortal() {
         </TabsList>
 
         <TabsContent value="staff">
-          <TalentStaffPanel data={staffQuery.data} isLoading={staffQuery.isLoading} />
+          <TalentStaffPanel data={staffQuery.data} isLoading={staffQuery.isLoading} onViewStaff={(userId: string) => navigate(`/profile/${userId}`)} />
         </TabsContent>
 
         <TabsContent value="pipeline">
-          <TalentLearnerPipeline data={learnerQuery.data} programmes={programmeQuery.data ?? []} isLoading={learnerQuery.isLoading} />
+          <TalentLearnerPipeline data={learnerQuery.data} programmes={programmeQuery.data ?? []} isLoading={learnerQuery.isLoading} onViewLearner={(learnerId: string) => navigate(`/learner/profile/${learnerId}`)} />
         </TabsContent>
 
         <TabsContent value="capacity">
-          <TalentCapacityPanel staffData={staffQuery.data} learnerData={learnerQuery.data} programmes={programmeQuery.data ?? []} isLoading={isLoading} />
+          <TalentCapacityPanel staffData={staffQuery.data} learnerData={learnerQuery.data} programmes={programmeQuery.data ?? []} isLoading={isLoading} onViewProgramme={(id: string) => navigate(`/programmes/${id}/builder`)} />
         </TabsContent>
       </Tabs>
     </div>

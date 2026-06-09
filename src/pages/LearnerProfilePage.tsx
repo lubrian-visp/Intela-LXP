@@ -4,6 +4,7 @@
  * viewing their own profile and for admins/PMs reviewing a learner.
  */
 import { useState, useMemo } from "react";
+import { useRealtimeSync } from "@/hooks/useCoreData";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -136,6 +137,10 @@ export default function LearnerProfilePage() {
 
   const targetId  = userId === "me" || !userId ? currentUser?.id : userId;
   const isSelf    = targetId === currentUser?.id;
+
+  // Real-time sync — ensures assessor grades and facilitator activity grades
+  // update this profile without requiring a manual page refresh (cross-portal sync fix)
+  useRealtimeSync(["assessment_submissions", "activity_grades", "issued_credentials", "enrolments"]);
   const isAdmin   = (currentRoles as string[]).some(r =>
     ["super_admin","systems_admin","operations","programme_manager"].includes(r)
   );
@@ -190,6 +195,20 @@ export default function LearnerProfilePage() {
     a.download = `InteLa_LXP_My_Data_${new Date().toISOString().split("T")[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
+
+    // POPIA compliance: log every data export to the audit trail
+    supabase.from("onboarding_audit_log").insert({
+      action:      "popia_data_export",
+      entity_type: "learner",
+      entity_id:   targetId,
+      performed_by: currentUser?.id ?? null,
+      details: {
+        exported_by: isSelf ? "self" : "admin",
+        fields_exported: ["personal_information", "academic_record", "credentials"],
+        format: "json",
+        timestamp: new Date().toISOString(),
+      },
+    }).then(() => {}); // fire-and-forget, non-blocking
   };
 
   // ── Computed stats ──────────────────────────────────────────────────────────
