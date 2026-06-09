@@ -1,4 +1,6 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   Activity, AlertTriangle, CheckCircle2, Clock, FileText, Search,
   TrendingUp, Users, BarChart3, ArrowUpRight, ArrowDownRight,
@@ -63,6 +65,8 @@ const statusColors: Record<string, string> = {
 };
 
 export default function OperationsPortal() {
+  usePageTitle("Dashboard", "Operations Portal");
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"dashboard" | "sla" | "escalations" | "approvals" | "performance">("dashboard");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -285,7 +289,12 @@ export default function OperationsPortal() {
               {escalations.filter(e => e.status !== "resolved").slice(0, 4).map(e => {
                 const pc = priorityConfig[e.priority];
                 return (
-                  <div key={e.id} className="px-6 py-3 flex items-center justify-between hover:bg-secondary/20 transition-colors cursor-pointer group">
+                  <button
+                    key={e.id}
+                    className="w-full text-left px-6 py-3 flex items-center justify-between hover:bg-secondary/20 transition-colors cursor-pointer group"
+                    onClick={() => setActiveTab("escalations")}
+                    aria-label={`View escalation: ${e.title}`}
+                  >
                     <div className="flex items-center gap-3 min-w-0">
                       <pc.icon className={cn("w-4 h-4 shrink-0", e.priority === "critical" ? "text-destructive" : e.priority === "high" ? "text-warning" : "text-info")} />
                       <div className="min-w-0">
@@ -294,7 +303,7 @@ export default function OperationsPortal() {
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -521,8 +530,16 @@ export default function OperationsPortal() {
           <div className="divide-y divide-border/50">
             {filteredEscalations.map(e => {
               const pc = priorityConfig[e.priority];
+              // Cross-role links based on escalation type
+              const crossRoleLinks = e.title.toLowerCase().includes("moderation") || e.title.toLowerCase().includes("assessment")
+                ? { label: "Assessor Queue", path: "/assessor/queue" }
+                : e.title.toLowerCase().includes("facilitator") || e.title.toLowerCase().includes("session")
+                  ? { label: "Facilitator Portal", path: "/facilitator" }
+                  : e.title.toLowerCase().includes("cohort") || e.title.toLowerCase().includes("learner")
+                    ? { label: "Learner Onboarding", path: "/learner/onboarding" }
+                    : null;
               return (
-                <div key={e.id} className="px-6 py-4 hover:bg-secondary/10 transition-colors cursor-pointer group">
+                <div key={e.id} className="px-6 py-4 hover:bg-secondary/10 transition-colors group">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-start gap-3 min-w-0 flex-1">
                       <pc.icon className={cn("w-4 h-4 shrink-0 mt-0.5", e.priority === "critical" ? "text-destructive" : e.priority === "high" ? "text-warning" : e.priority === "medium" ? "text-info" : "text-muted-foreground")} />
@@ -533,6 +550,15 @@ export default function OperationsPortal() {
                           <span className="text-[10px] text-muted-foreground">{e.programme}</span>
                           <span className="text-[10px] text-muted-foreground flex items-center gap-1"><Clock className="w-3 h-3" />{e.raised}</span>
                           <span className="text-[10px] text-muted-foreground">→ {e.assignee}</span>
+                          {crossRoleLinks && (
+                            <button
+                              onClick={() => navigate(crossRoleLinks.path)}
+                              className="text-[10px] text-primary font-medium hover:underline flex items-center gap-0.5"
+                              aria-label={`Go to ${crossRoleLinks.label}`}
+                            >
+                              <ChevronRight className="w-3 h-3" /> {crossRoleLinks.label}
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -676,7 +702,11 @@ export default function OperationsPortal() {
                         </div>
                       </td>
                       <td className="px-4 py-3.5 text-center">
-                        <Button variant="ghost" size="sm" className="h-7 text-xs gap-1">
+                        <Button
+                          variant="ghost" size="sm" className="h-7 text-xs gap-1"
+                          onClick={() => navigate(`/programmes/${p.id}/builder`)}
+                          aria-label={`View details for ${p.name}`}
+                        >
                           <Eye className="w-3 h-3" /> Details
                         </Button>
                       </td>

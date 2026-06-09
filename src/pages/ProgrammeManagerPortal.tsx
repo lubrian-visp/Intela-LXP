@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { usePageTitle } from "@/hooks/usePageTitle";
 import {
   GraduationCap, Users, TrendingUp, ArrowUpRight, ArrowDownRight,
   Search, Calendar, AlertTriangle, BookOpen, Package, UserPlus,
@@ -86,6 +87,7 @@ function getGreeting(name: string | null) {
 }
 
 export default function ProgrammeManagerPortal() {
+  usePageTitle("Dashboard", "Programme Manager Portal");
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("All");
@@ -272,9 +274,13 @@ export default function ProgrammeManagerPortal() {
                     </div>
                   </div>
                   {p.atRisk > 0 && (
-                    <span className="flex items-center gap-0.5 text-[10px] font-medium text-rose-500 shrink-0">
-                      <AlertTriangle className="w-3 h-3" /> {p.atRisk}
-                    </span>
+                    <button
+                      onClick={() => navigate("/facilitator/learner-progress")}
+                      className="flex items-center gap-0.5 text-[10px] font-medium text-rose-500 shrink-0 hover:underline"
+                      aria-label={`View ${p.atRisk} at-risk learners for ${p.name}`}
+                    >
+                      <AlertTriangle className="w-3 h-3" /> {p.atRisk} at-risk
+                    </button>
                   )}
                 </div>
               ))
@@ -385,7 +391,13 @@ export default function ProgrammeManagerPortal() {
                       <td className="px-4 py-3 text-center text-foreground font-medium">{p.enrolled}</td>
                       <td className="px-4 py-3 text-center">
                         {p.atRisk > 0
-                          ? <span className="text-xs font-medium text-rose-500 flex items-center justify-center gap-1"><AlertTriangle className="w-3 h-3" /> {p.atRisk}</span>
+                          ? <button
+                              onClick={ev => { ev.stopPropagation(); navigate("/facilitator/learner-progress"); }}
+                              className="text-xs font-medium text-rose-500 flex items-center justify-center gap-1 hover:underline mx-auto"
+                              aria-label={`${p.atRisk} at-risk learners — view in Facilitator portal`}
+                            >
+                              <AlertTriangle className="w-3 h-3" /> {p.atRisk}
+                            </button>
                           : <span className="text-muted-foreground">—</span>}
                       </td>
                       <td className="px-4 py-3">
